@@ -76,6 +76,7 @@ spring.mail.password=your-16-digit-app-password
 2. Launching the System
 
 Bash
+Clone - https://github.com/PraGeeYa/Drive-ease.git
 
 # Run Backend
 mvn spring-boot:run
