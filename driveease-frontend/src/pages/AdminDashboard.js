@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Container, TextField, Button, Typography, Paper, Box, Grid, 
     Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
-    IconButton, MenuItem, Stack, Divider, Chip, Snackbar, Alert
+    IconButton, MenuItem, Stack, Divider, Chip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -28,11 +28,12 @@ const AdminDashboard = () => {
     const [messages, setMessages] = useState([]); 
     const [admins, setAdmins] = useState([]); 
 
-    // --- 🔔 SUCCESS POP-UP STATES ---
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
     const [isEditMode, setIsEditMode] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
+
+    const [openBookingEdit, setOpenBookingEdit] = useState(false);
+    const [bookingForm, setBookingForm] = useState({ customerName: '', pickupDate: '' });
 
     const [contractForm, setContractForm] = useState({ vehicleType: '', baseRatePerDay: '', providerId: '' });
     const [adminForm, setAdminForm] = useState({ username: '', password: '', email: '' }); 
@@ -68,9 +69,36 @@ const AdminDashboard = () => {
         } catch (err) { console.error("Admins loading failed", err); }
     };
 
-    // --- POP-UP HANDLERS ---
     const showPopup = (msg, sev = 'success') => setSnackbar({ open: true, message: msg, severity: sev });
     const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
+
+    const handleEditBooking = (b) => {
+        setSelectedId(b.bookingId);
+        setBookingForm({ customerName: b.customerName || '', pickupDate: b.pickupDate || '' });
+        setOpenBookingEdit(true);
+    };
+
+    const onUpdateBooking = async () => {
+        try {
+            await AdminService.updateBooking(selectedId, bookingForm);
+            showPopup("Booking Updated Successfully!");
+            setOpenBookingEdit(false);
+            loadData();
+        } catch (err) { showPopup("Update Failed!", "error"); }
+    };
+
+    const deleteBooking = async (id) => {
+        if(window.confirm("Delete this booking record permanently?")) {
+            try {
+                await AdminService.deleteBooking(id);
+                showPopup("Booking Deleted!");
+                loadData();
+            } catch (err) { 
+                console.error(err);
+                showPopup("Deletion Failed!", "error"); 
+            }
+        }
+    };
 
     const handleEditContract = (c) => {
         const id = c.contractId || c.id;
@@ -87,13 +115,11 @@ const AdminDashboard = () => {
         setSelectedId(null);
     };
 
-    // --- 💾 DATABASE ACTIONS WITH POP-UPS ---
-
     const onAddProvider = async (e) => {
         e.preventDefault();
         try {
             await AdminService.addProvider(providerForm);
-            showPopup("Provider Registered Successfully!"); // Success Message
+            showPopup("Provider Registered Successfully!");
             resetForms();
             loadData();
         } catch (err) { showPopup("Registration Failed!", "error"); }
@@ -135,7 +161,7 @@ const AdminDashboard = () => {
     };
 
     const deleteRecord = async (id) => {
-        if(window.confirm("Confirm permanent deletion?")) {
+        if(window.confirm("Confirm permanent deletion of this record?")) {
             try {
                 await AdminService.deleteUser(id);
                 showPopup("Record Deleted Permanently!");
@@ -158,8 +184,6 @@ const AdminDashboard = () => {
 
     return (
         <Box sx={{ bgcolor: DARK_BG, minHeight: '100vh', color: '#fff', pb: 10 }}>
-            
-            {/* --- HERO HEADER (Metrics used to clean warnings) --- */}
             <Box sx={{ py: 6, textAlign: 'center', background: 'linear-gradient(to bottom, #111 0%, #000 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                     <Typography variant="h2" fontWeight="900">ADMIN <span style={{ color: PRIMARY_ORANGE }}>CENTRAL</span></Typography>
@@ -190,21 +214,37 @@ const AdminDashboard = () => {
                         <Tab label="PROVIDERS" icon={<BusinessIcon fontSize="small"/>} iconPosition="start" />
                         <Tab label="MESSAGES" icon={<EmailIcon fontSize="small"/>} iconPosition="start" />
                         <Tab label="ADMINS" icon={<AdminPanelSettingsIcon fontSize="small"/>} iconPosition="start" />
+                        <Tab label="USERS" icon={<GroupIcon fontSize="small"/>} iconPosition="start" />
                     </Tabs>
                 </Stack>
 
                 <AnimatePresence mode="wait">
                     <Box sx={{ minHeight: '400px' }}>
-                        
-                        {/* 0. BOOKINGS TAB */}
                         {tabValue === 0 && (
                             <motion.div key="bookings" {...fadeInUp}>
                                 <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 0 }}>
                                     <Table>
-                                        <TableHead sx={tableHeaderStyle}><TableRow><TableCell>ID</TableCell><TableCell>CUSTOMER</TableCell><TableCell>VEHICLE</TableCell><TableCell>TOTAL</TableCell></TableRow></TableHead>
+                                        <TableHead sx={tableHeaderStyle}>
+                                            <TableRow>
+                                                <TableCell>ID</TableCell>
+                                                <TableCell>CUSTOMER</TableCell>
+                                                <TableCell>VEHICLE</TableCell>
+                                                <TableCell>TOTAL</TableCell>
+                                                <TableCell>ACTION</TableCell>
+                                            </TableRow>
+                                        </TableHead>
                                         <TableBody>
                                             {bookings.map(b => (
-                                                <TableRow key={b.bookingId} hover><TableCell align="center" sx={{ color: '#fff' }}>#{b.bookingId}</TableCell><TableCell align="center" sx={{ color: '#fff' }}>{b.customerName}</TableCell><TableCell align="center" sx={{ color: PRIMARY_ORANGE }}>{b.vehicleContract?.vehicleType}</TableCell><TableCell align="center" sx={{ color: '#fff' }}>LKR {b.finalPrice}</TableCell></TableRow>
+                                                <TableRow key={b.bookingId} hover>
+                                                    <TableCell align="center" sx={{ color: '#fff' }}>#{b.bookingId}</TableCell>
+                                                    <TableCell align="center" sx={{ color: '#fff' }}>{b.customerName || b.customer?.username}</TableCell>
+                                                    <TableCell align="center" sx={{ color: PRIMARY_ORANGE }}>{b.vehicleContract?.vehicleType}</TableCell>
+                                                    <TableCell align="center" sx={{ color: '#fff' }}>LKR {b.finalPrice}</TableCell>
+                                                    <TableCell align="center">
+                                                        <IconButton sx={{ color: PRIMARY_ORANGE }} onClick={() => handleEditBooking(b)}><EditIcon fontSize="small" /></IconButton>
+                                                        <IconButton sx={{ color: '#ff1744' }} onClick={() => deleteBooking(b.bookingId)}><DeleteIcon fontSize="small" /></IconButton>
+                                                    </TableCell>
+                                                </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
@@ -212,7 +252,6 @@ const AdminDashboard = () => {
                             </motion.div>
                         )}
 
-                        {/* 1. INVENTORY TAB */}
                         {tabValue === 1 && (
                             <motion.div key="inventory" {...fadeInUp}>
                                 <Grid container spacing={4} justifyContent="center">
@@ -244,7 +283,6 @@ const AdminDashboard = () => {
                             </motion.div>
                         )}
 
-                        {/* 2. PROVIDERS TAB */}
                         {tabValue === 2 && (
                             <motion.div key="providers" {...fadeInUp}>
                                 <Grid container spacing={4} justifyContent="center">
@@ -253,7 +291,7 @@ const AdminDashboard = () => {
                                             <Typography variant="h6" color={PRIMARY_ORANGE} mb={3} textAlign="center">REGISTER PROVIDER</Typography>
                                             <Stack spacing={3}>
                                                 <TextField fullWidth label="NAME" variant="standard" value={providerForm.providerName} onChange={(e) => setProviderForm({...providerForm, providerName: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
-                                                <TextField fullWidth label="CONTACT NUMBER" variant="standard" value={providerForm.contactNumber} onChange={(e) => setProviderForm({...providerForm, contactNumber: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
+                                                <TextField fullWidth label="CONTACT" variant="standard" value={providerForm.contactNumber} onChange={(e) => setProviderForm({...providerForm, contactNumber: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
                                                 <TextField fullWidth label="EMAIL" variant="standard" value={providerForm.email} onChange={(e) => setProviderForm({...providerForm, email: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
                                                 <Button variant="contained" fullWidth onClick={onAddProvider} sx={{ bgcolor: PRIMARY_ORANGE, fontWeight: '900' }}>REGISTER</Button>
                                             </Stack>
@@ -262,9 +300,9 @@ const AdminDashboard = () => {
                                     <Grid item xs={12} md={8}>
                                         <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid #1a1a1a' }}>
                                             <Table>
-                                                <TableHead sx={tableHeaderStyle}><TableRow><TableCell>ID</TableCell><TableCell>PROVIDER NAME</TableCell><TableCell>CONTACT</TableCell></TableRow></TableHead>
+                                                <TableHead sx={tableHeaderStyle}><TableRow><TableCell>ID</TableCell><TableCell>NAME</TableCell><TableCell>CONTACT</TableCell></TableRow></TableHead>
                                                 <TableBody>
-                                                    {providers.map(p => (<TableRow key={p.providerId} hover><TableCell align="center" sx={{ color: '#fff' }}>#{p.providerId}</TableCell><TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>{p.providerName}</TableCell><TableCell align="center" sx={{ color: 'rgba(255,255,255,0.6)' }}>{p.contactNumber}</TableCell></TableRow>))}
+                                                    {providers.map(p => (<TableRow key={p.providerId} hover><TableCell align="center" sx={{ color: '#fff' }}>#{p.providerId}</TableCell><TableCell align="center" sx={{ color: '#fff' }}>{p.providerName}</TableCell><TableCell align="center" sx={{ color: 'rgba(255,255,255,0.6)' }}>{p.contactNumber}</TableCell></TableRow>))}
                                                 </TableBody>
                                             </Table>
                                         </TableContainer>
@@ -273,28 +311,24 @@ const AdminDashboard = () => {
                             </motion.div>
                         )}
 
-                        {/* 3. MESSAGES TAB (FIXED: messages state used) */}
                         {tabValue === 3 && (
                             <motion.div key="messages" {...fadeInUp}>
-                                <Stack alignItems="center">
-                                    <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid #1a1a1a', maxWidth: '900px' }}>
-                                        <Table>
-                                            <TableHead sx={tableHeaderStyle}><TableRow><TableCell>CUSTOMER</TableCell><TableCell>MESSAGE</TableCell></TableRow></TableHead>
-                                            <TableBody>
-                                                {messages.length > 0 ? messages.map(m => (
-                                                    <TableRow key={m.id} hover>
-                                                        <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>{m.firstName?.toUpperCase()}</TableCell>
-                                                        <TableCell align="center" sx={{ color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>"{m.message}"</TableCell>
-                                                    </TableRow>
-                                                )) : <TableRow><TableCell colSpan={2} align="center" sx={{py: 5, color:'#444'}}>NO NEW MESSAGES</TableCell></TableRow>}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </Stack>
+                                <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid #1a1a1a' }}>
+                                    <Table>
+                                        <TableHead sx={tableHeaderStyle}><TableRow><TableCell>CUSTOMER</TableCell><TableCell>MESSAGE</TableCell></TableRow></TableHead>
+                                        <TableBody>
+                                            {messages.length > 0 ? messages.map(m => (
+                                                <TableRow key={m.id} hover>
+                                                    <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>{m.firstName}</TableCell>
+                                                    <TableCell align="center" sx={{ color: 'rgba(255,255,255,0.7)' }}>{m.message}</TableCell>
+                                                </TableRow>
+                                            )) : <TableRow><TableCell colSpan={2} align="center" sx={{color: '#444', py: 5}}>NO NEW MESSAGES</TableCell></TableRow>}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
                             </motion.div>
                         )}
 
-                        {/* 4. ADMINS TAB */}
                         {tabValue === 4 && (
                             <motion.div key="admins" {...fadeInUp}>
                                 <Grid container spacing={4} justifyContent="center">
@@ -303,25 +337,23 @@ const AdminDashboard = () => {
                                             <Typography variant="h6" color={PRIMARY_ORANGE} mb={3} textAlign="center">{isEditMode ? "EDIT ADMIN" : "NEW ADMIN"}</Typography>
                                             <Stack spacing={3}>
                                                 <TextField fullWidth label="USERNAME" variant="standard" value={adminForm.username} onChange={(e) => setAdminForm({...adminForm, username: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
-                                                <TextField fullWidth label="EMAIL ADDRESS" variant="standard" value={adminForm.email} onChange={(e) => setAdminForm({...adminForm, email: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
+                                                <TextField fullWidth label="EMAIL" variant="standard" value={adminForm.email} onChange={(e) => setAdminForm({...adminForm, email: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
                                                 {!isEditMode && <TextField fullWidth label="PASSWORD" type="password" variant="standard" value={adminForm.password} onChange={(e) => setAdminForm({...adminForm, password: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />}
-                                                <Button variant="contained" fullWidth onClick={isEditMode ? onUpdateAdmin : onRegisterAdmin} sx={{ bgcolor: PRIMARY_ORANGE, fontWeight: '900', py: 1.5 }}>
-                                                    {isEditMode ? "SAVE CHANGES" : "AUTHORIZE ADMIN"}
-                                                </Button>
-                                                {isEditMode && <Button fullWidth sx={{ color: '#fff', mt: 1 }} onClick={resetForms}>CANCEL</Button>}
+                                                <Button variant="contained" fullWidth onClick={isEditMode ? onUpdateAdmin : onRegisterAdmin} sx={{ bgcolor: PRIMARY_ORANGE, fontWeight: '900' }}>{isEditMode ? "UPDATE" : "AUTHORIZE"}</Button>
+                                                {isEditMode && <Button fullWidth sx={{ color: '#fff' }} onClick={resetForms}>CANCEL</Button>}
                                             </Stack>
                                         </Paper>
                                     </Grid>
                                     <Grid item xs={12} md={8}>
                                         <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid #1a1a1a' }}>
                                             <Table>
-                                                <TableHead sx={tableHeaderStyle}><TableRow><TableCell>NAME</TableCell><TableCell>EMAIL</TableCell><TableCell>STATUS</TableCell><TableCell>ACTION</TableCell></TableRow></TableHead>
+                                                <TableHead sx={tableHeaderStyle}><TableRow><TableCell>NAME</TableCell><TableCell>EMAIL</TableCell><TableCell>ROLE</TableCell><TableCell>ACTION</TableCell></TableRow></TableHead>
                                                 <TableBody>
-                                                    {admins.map((admin) => (
+                                                    {admins.map(admin => (
                                                         <TableRow key={admin.userId} hover>
-                                                            <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>{admin.username}</TableCell>
-                                                            <TableCell align="center" sx={{ color: 'rgba(255,255,255,0.6)' }}>{admin.email}</TableCell>
-                                                            <TableCell align="center"><Chip label="MASTER" size="small" sx={{ bgcolor: '#1b3320', color: '#4caf50', borderRadius: 0, fontWeight: 'bold' }} /></TableCell>
+                                                            <TableCell align="center" sx={{ color: '#fff' }}>{admin.username}</TableCell>
+                                                            <TableCell align="center" sx={{ color: '#fff' }}>{admin.email}</TableCell>
+                                                            <TableCell align="center"><Chip label="ADMIN" color="warning" size="small" variant="outlined" sx={{ color: '#fff' }} /></TableCell>
                                                             <TableCell align="center">
                                                                 <IconButton sx={{ color: PRIMARY_ORANGE }} onClick={() => { setSelectedId(admin.userId); setAdminForm({username: admin.username, email: admin.email}); setIsEditMode(true); }}><EditIcon fontSize="small" /></IconButton>
                                                                 <IconButton sx={{ color: '#ff1744' }} onClick={() => deleteRecord(admin.userId)}><DeleteIcon fontSize="small" /></IconButton>
@@ -335,17 +367,69 @@ const AdminDashboard = () => {
                                 </Grid>
                             </motion.div>
                         )}
+
+                        {tabValue === 5 && (
+                            <motion.div key="users" {...fadeInUp}>
+                                <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 0 }}>
+                                    <Table>
+                                        <TableHead sx={tableHeaderStyle}>
+                                            <TableRow>
+                                                <TableCell>UID</TableCell>
+                                                <TableCell>NAME</TableCell>
+                                                <TableCell>EMAIL</TableCell>
+                                                <TableCell>ROLE</TableCell>
+                                                <TableCell>ACTION</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {users.map(u => (
+                                                <TableRow key={u.userId} hover>
+                                                    <TableCell align="center" sx={{ color: 'rgba(255,255,255,0.4)' }}>#{u.userId}</TableCell>
+                                                    <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>{u.username}</TableCell>
+                                                    <TableCell align="center" sx={{ color: 'rgba(255,255,255,0.7)' }}>{u.email}</TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip 
+                                                            label={u.role} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                bgcolor: u.role === 'ADMIN' ? '#d32f2f' : u.role === 'AGENT' ? '#1976d2' : '#388e3c', 
+                                                                color: '#fff', 
+                                                                fontWeight: '900',
+                                                                borderRadius: 0 
+                                                            }} 
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <IconButton sx={{ color: '#ff1744' }} onClick={() => deleteRecord(u.userId)}>
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </motion.div>
+                        )}
                     </Box>
                 </AnimatePresence>
             </Container>
 
-            {/* --- 🔔 SUCCESS NOTIFICATION (SNACKBAR) --- */}
-            <Snackbar 
-                open={snackbar.open} 
-                autoHideDuration={4000} 
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
+            <Dialog open={openBookingEdit} onClose={() => setOpenBookingEdit(false)} PaperProps={{ sx: { bgcolor: '#111', color: '#fff', borderRadius: 0, border: '1px solid #333' } }}>
+                <DialogTitle sx={{ color: PRIMARY_ORANGE, fontWeight: 'bold' }}>EDIT BOOKING</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={3} sx={{ mt: 2, minWidth: '300px' }}>
+                        <TextField fullWidth label="CUSTOMER NAME" variant="standard" value={bookingForm.customerName} onChange={(e) => setBookingForm({...bookingForm, customerName: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
+                        <TextField fullWidth label="PICKUP DATE" type="date" variant="standard" value={bookingForm.pickupDate} onChange={(e) => setBookingForm({...bookingForm, pickupDate: e.target.value})} inputProps={{style: {color: '#fff'}}} InputLabelProps={{shrink: true, style: {color: PRIMARY_ORANGE}}} />
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button onClick={() => setOpenBookingEdit(false)} sx={{ color: '#fff' }}>CANCEL</Button>
+                    <Button onClick={onUpdateBooking} variant="contained" sx={{ bgcolor: PRIMARY_ORANGE }}>UPDATE</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
                 <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', bgcolor: '#1b3320', color: '#4caf50', fontWeight: 'bold', border: '1px solid #4caf50' }}>
                     {snackbar.message}
                 </Alert>

@@ -71,6 +71,9 @@ public class VehicleContract {
     public BigDecimal getBaseRatePerDay() { return baseRatePerDay; }
     public void setBaseRatePerDay(BigDecimal baseRatePerDay) { this.baseRatePerDay = baseRatePerDay; }
 
+    // 🔥 Added this to fix Controller build error
+    public boolean getAvailabilityStatus() { return availabilityStatus; }
+
     public boolean isAvailabilityStatus() { return availabilityStatus; }
     public void setAvailabilityStatus(boolean availabilityStatus) { this.availabilityStatus = availabilityStatus; }
 

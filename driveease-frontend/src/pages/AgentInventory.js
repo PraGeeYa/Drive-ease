@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Container, Typography, Paper, Box, Table, TableBody, TableCell, 
     TableContainer, TableHead, TableRow, IconButton, Stack, TextField, 
-    Button, Snackbar, Alert, Divider, Chip, Grid 
+    Button, Snackbar, Alert, Divider, Chip, Grid, CircularProgress
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import EditIcon from '@mui/icons-material/Edit';
@@ -12,22 +12,30 @@ import AgentService from '../api/Services/AgentService';
 
 const AgentInventory = () => {
     const PRIMARY_ORANGE = "#ff5722";
-    // Oya deepu image URL eka
-    const BG_IMAGE = "https://www.astarlimousineqa.com/wp-content/uploads/2023/12/car-rentingg.png";
+    const BG_IMAGE = "https://rev-ai.io/wp-content/uploads/2022/03/Transaction-Tracking-and-Analytics-Steering-Car-Rental-banner.webp";
     
     const [bookings, setBookings] = useState([]); 
+    const [loading, setLoading] = useState(true);
     const [isEditMode, setIsEditMode] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState({ id: null, customerName: '', pickupDate: '' });
+    
+    // 🔥 Toast State
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     
     const agentId = localStorage.getItem('userId'); 
 
+    // Helper to show Toast
+    const showToast = (msg, sev = 'success') => setSnackbar({ open: true, message: msg, severity: sev });
+
     const fetchMyRealBookings = useCallback(async () => {
         try {
+            setLoading(true);
             const res = await AgentService.getAgentBookings(agentId);
             setBookings(res.data || []);
         } catch (err) { 
-            console.error("Loading failed", err);
+            showToast("Failed to fetch transaction archive.", "error");
+        } finally {
+            setLoading(false);
         }
     }, [agentId]);
 
@@ -35,12 +43,7 @@ const AgentInventory = () => {
         if (agentId) fetchMyRealBookings();
     }, [agentId, fetchMyRealBookings]);
 
-    const showMessage = (msg, sev = 'success') => setSnackbar({ open: true, message: msg, severity: sev });
-
-    const handleCloseSnackbar = (event, reason) => {
-        if (reason === 'clickaway') return;
-        setSnackbar({ ...snackbar, open: false });
-    };
+    const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
     const handleEditClick = (b) => {
         setSelectedBooking({ id: b.bookingId, customerName: b.customerName, pickupDate: b.pickupDate });
@@ -49,95 +52,90 @@ const AgentInventory = () => {
     };
 
     const handleUpdate = async () => {
-        if (!selectedBooking.id) {
-            showMessage("ID is missing!", "error");
+        if (!selectedBooking.customerName || !selectedBooking.pickupDate) {
+            showToast("Validation Error: Fields cannot be empty.", "warning");
             return;
         }
         try {
             await AgentService.updateBooking(selectedBooking.id, selectedBooking);
-            showMessage("Record updated successfully!");
+            showToast("Record updated successfully!"); 
             setIsEditMode(false);
             fetchMyRealBookings();
         } catch (err) {
-            showMessage("Update failed. Check backend.", "error");
+            showToast("Critical: Update failed. System offline.", "error");
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Confirm deletion?")) {
+        if (window.confirm("Are you sure you want to delete this archive?")) {
             try {
                 await AgentService.deleteBooking(id);
-                showMessage("Record deleted!");
+                showToast("Record permanently deleted.", "success"); 
                 fetchMyRealBookings();
             } catch (err) {
-                showMessage("Deletion failed.", "error");
+                showToast("Critical: Deletion failed.", "error");
             }
         }
     };
 
     return (
         <Box sx={{ 
-            bgcolor: '#000', 
-            minHeight: '100vh', 
-            pb: 10, 
-            color: '#ffffff',
-            // --- Global Background Styling ---
+            bgcolor: '#000', minHeight: '100vh', pb: 10, color: '#ffffff',
             backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.92)), url(${BG_IMAGE})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed'
+            backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed'
         }}>
             
-            {/* --- HERO HEADER --- */}
-            <Box sx={{ py: 8, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <Box sx={{ py: 10, textAlign: 'center' }}>
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                     <Stack direction="row" spacing={1} justifyContent="center" alignItems="center" mb={1}>
                         <HistoryIcon sx={{ color: PRIMARY_ORANGE, fontSize: 24 }} />
-                        <Typography variant="overline" sx={{ color: PRIMARY_ORANGE, letterSpacing: 6, fontWeight: 900 }}>
-                            TRANSACTION ARCHIVE
+                        <Typography variant="overline" sx={{ color: PRIMARY_ORANGE, letterSpacing: 10, fontWeight: 900 }}>
+                            DRIVEEASE ELITE
                         </Typography>
                     </Stack>
-                    <Typography variant="h2" fontWeight="900" sx={{ textShadow: '2px 2px 10px rgba(0,0,0,0.5)' }}>
-                        BOOKING <span style={{ color: PRIMARY_ORANGE }}>INVENTORY</span>
+                    <Typography variant="h2" fontWeight="900" sx={{ mb: 2 }}>
+                        TRANSACTION <span style={{ color: PRIMARY_ORANGE }}>ARCHIVE</span>
                     </Typography>
                 </motion.div>
             </Box>
 
-            <Container maxWidth="lg" sx={{ mt: 4 }}>
+            <Container maxWidth="lg">
                 
-                {/* --- REVISION PANEL (Glass-morphism) --- */}
                 <AnimatePresence>
                     {isEditMode && (
-                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                             <Paper sx={{ 
-                                p: 4, mb: 4, 
-                                bgcolor: 'rgba(20, 20, 20, 0.9)', 
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: 0, 
-                                border: `2px solid ${PRIMARY_ORANGE}`,
-                                boxShadow: `0 0 20px ${PRIMARY_ORANGE}33`
+                                p: 4, mb: 6, bgcolor: 'rgba(10, 10, 10, 0.95)', backdropFilter: 'blur(20px)', borderRadius: 2, 
+                                border: `1px solid ${PRIMARY_ORANGE}`, boxShadow: `0 10px 40px ${PRIMARY_ORANGE}22`
                             }}>
-                                <Typography variant="h6" sx={{ mb: 2, fontWeight: 900, color: PRIMARY_ORANGE }}>EDITING RECORD: #{selectedBooking.id}</Typography>
+                                <Typography variant="h6" sx={{ mb: 2, fontWeight: 900, color: PRIMARY_ORANGE }}>REVISING RECORD: #{selectedBooking.id}</Typography>
+                                
+                                {/* 🔥 Divider pawaichchi kala warning fix karanna */}
                                 <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 3 }} />
-                                <Grid container spacing={3} alignItems="flex-end">
+
+                                <Grid container spacing={3} alignItems="center">
                                     <Grid item xs={12} sm={4}>
-                                        <TextField fullWidth label="CUSTOMER NAME" variant="standard" 
+                                        <TextField fullWidth label="CUSTOMER NAME" variant="outlined" size="small"
                                             value={selectedBooking.customerName} 
                                             onChange={(e) => setSelectedBooking({...selectedBooking, customerName: e.target.value})}
-                                            InputLabelProps={{ style: { color: PRIMARY_ORANGE } }}
-                                            inputProps={{ style: { color: '#ffffff' } }} 
+                                            sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+                                            InputLabelProps={{ sx: { color: PRIMARY_ORANGE } }}
+                                            inputProps={{ sx: { color: '#fff' } }} 
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={4}>
-                                        <TextField fullWidth type="date" label="PICKUP DATE" variant="standard" InputLabelProps={{ shrink: true, style: { color: PRIMARY_ORANGE } }}
-                                            value={selectedBooking.pickupDate} onChange={(e) => setSelectedBooking({...selectedBooking, pickupDate: e.target.value})}
-                                            inputProps={{ style: { color: '#ffffff' } }} 
+                                        <TextField fullWidth type="date" label="PICKUP DATE" variant="outlined" size="small"
+                                            value={selectedBooking.pickupDate} 
+                                            onChange={(e) => setSelectedBooking({...selectedBooking, pickupDate: e.target.value})}
+                                            InputLabelProps={{ shrink: true, sx: { color: PRIMARY_ORANGE } }}
+                                            sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+                                            inputProps={{ sx: { color: '#fff' } }} 
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={4}>
                                         <Stack direction="row" spacing={2}>
-                                            <Button fullWidth variant="contained" onClick={handleUpdate} sx={{ bgcolor: PRIMARY_ORANGE, fontWeight: 900, borderRadius: 0 }}>UPDATE</Button>
-                                            <Button fullWidth variant="outlined" onClick={() => setIsEditMode(false)} sx={{ color: '#ffffff', borderColor: '#ffffff', borderRadius: 0 }}>CANCEL</Button>
+                                            <Button fullWidth variant="contained" onClick={handleUpdate} sx={{ bgcolor: PRIMARY_ORANGE, fontWeight: 900 }}>UPDATE</Button>
+                                            <Button fullWidth variant="outlined" onClick={() => setIsEditMode(false)} sx={{ color: '#fff', borderColor: '#fff' }}>CANCEL</Button>
                                         </Stack>
                                     </Grid>
                                 </Grid>
@@ -146,49 +144,45 @@ const AgentInventory = () => {
                     )}
                 </AnimatePresence>
 
-                {/* --- TABLE WITH GLASS-MORPHISM --- */}
-                <TableContainer component={Paper} sx={{ 
-                    bgcolor: 'rgba(10, 10, 10, 0.8)', 
-                    backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,255,255,0.05)', 
-                    borderRadius: 0,
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.7)'
-                }}>
-                    <Table>
-                        <TableHead sx={{ bgcolor: 'rgba(20, 20, 20, 0.5)' }}>
-                            <TableRow>
-                                <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>ID</TableCell>
-                                <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>CUSTOMER</TableCell>
-                                <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>VEHICLE</TableCell>
-                                <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>PICKUP</TableCell>
-                                <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }} align="center">TOTAL</TableCell>
-                                <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }} align="center">ACTIONS</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {bookings.map((b) => (
-                                <TableRow key={b.bookingId} hover sx={{ '&:hover': { bgcolor: 'rgba(255, 87, 34, 0.05) !important' } }}>
-                                    <TableCell sx={{ color: 'rgba(255,255,255,0.4)' }}>#{b.bookingId}</TableCell>
-                                    <TableCell sx={{ color: '#ffffff', fontWeight: 'bold' }}>{b.customerName}</TableCell>
-                                    <TableCell>
-                                        <Chip label={b.vehicleContract?.vehicleType || "N/A"} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 0 }} />
-                                    </TableCell>
-                                    <TableCell sx={{ color: '#ffffff', opacity: 0.8 }}>{b.pickupDate}</TableCell>
-                                    <TableCell align="center" sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>LKR {b.finalPrice?.toLocaleString()}</TableCell>
-                                    <TableCell align="center">
-                                        <IconButton sx={{ color: '#ffffff', '&:hover': { color: PRIMARY_ORANGE } }} onClick={() => handleEditClick(b)}><EditIcon fontSize="small" /></IconButton>
-                                        <IconButton sx={{ color: '#ffffff', '&:hover': { color: '#ff1744' } }} onClick={() => handleDelete(b.bookingId)}><DeleteIcon fontSize="small" /></IconButton>
-                                    </TableCell>
+                <TableContainer component={Paper} sx={{ bgcolor: 'rgba(10, 10, 10, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                    {loading ? (
+                        <Box sx={{ textAlign: 'center', py: 10 }}><CircularProgress sx={{ color: PRIMARY_ORANGE }} /></Box>
+                    ) : (
+                        <Table>
+                            <TableHead sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}>
+                                <TableRow>
+                                    <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>ID</TableCell>
+                                    <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>CUSTOMER</TableCell>
+                                    <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>VEHICLE</TableCell>
+                                    <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>PICKUP</TableCell>
+                                    <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }} align="center">TOTAL</TableCell>
+                                    <TableCell sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }} align="center">ACTIONS</TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHead>
+                            <TableBody>
+                                {bookings.map((b) => (
+                                    <TableRow key={b.bookingId} hover sx={{ '&:hover': { bgcolor: 'rgba(255, 87, 34, 0.05) !important' } }}>
+                                        <TableCell sx={{ color: 'rgba(255,255,255,0.4)' }}>#{b.bookingId}</TableCell>
+                                        <TableCell sx={{ color: '#ffffff', fontWeight: 'bold' }}>{b.customerName}</TableCell>
+                                        <TableCell>
+                                            <Chip label={b.vehicleContract?.vehicleType || "N/A"} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }} />
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#ffffff', opacity: 0.8 }}>{b.pickupDate}</TableCell>
+                                        <TableCell align="center" sx={{ color: PRIMARY_ORANGE, fontWeight: 900 }}>LKR {b.finalPrice?.toLocaleString()}</TableCell>
+                                        <TableCell align="center">
+                                            <IconButton sx={{ color: '#fff', '&:hover': { color: PRIMARY_ORANGE } }} onClick={() => handleEditClick(b)}><EditIcon fontSize="small" /></IconButton>
+                                            <IconButton sx={{ color: '#fff', '&:hover': { color: '#ff1744' } }} onClick={() => handleDelete(b.bookingId)}><DeleteIcon fontSize="small" /></IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </TableContainer>
             </Container>
 
-            {/* --- NOTIFICATIONS --- */}
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 0, bgcolor: snackbar.severity === 'success' ? '#1b3320' : '#331b1b', color: '#fff', border: `1px solid ${snackbar.severity === 'success' ? '#4caf50' : '#f44336'}` }}>
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', bgcolor: snackbar.severity === 'success' ? '#1b3320' : '#331b1b', color: '#fff', border: `1px solid ${snackbar.severity === 'success' ? '#4caf50' : '#f44336'}`, borderRadius: 1 }}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>

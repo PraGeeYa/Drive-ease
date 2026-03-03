@@ -1,48 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
     Box, Container, Typography, Grid, Card, CardMedia, CardContent, 
     Button, Stack, Tabs, Tab, Divider, CircularProgress, Chip, 
-    Paper // FIXED: Paper component eka import kala
+    Paper, TextField, InputAdornment, MenuItem, Select, FormControl
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import SearchIcon from '@mui/icons-material/Search';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import CustomerService from '../api/Services/CustomerService'; 
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import apiClient from '../api/apiClient';
 
 const Fleet = () => {
     const navigate = useNavigate();
     const [category, setCategory] = useState('All');
     const [vehicles, setVehicles] = useState([]); 
+    const [availableCategories, setAvailableCategories] = useState(['All']); 
     const [loading, setLoading] = useState(true);
+    const [vehicleImages, setVehicleImages] = useState({});
     
+    const [searchQuery, setSearchQuery] = useState("");
+    const [sortOrder, setSortOrder] = useState("none");
+
     const PRIMARY_ORANGE = "#ff5722";
     const DARK_BG = "#000000";
     const HERO_BG = "https://rev-ai.io/wp-content/uploads/2022/03/Transaction-Tracking-and-Analytics-Steering-Car-Rental-banner.webp";
 
-    const fetchFleet = async (selectedCategory) => {
+    const getVehicleImage = (vehicleName) => {
+        return `https://loremflickr.com/800/600/${encodeURIComponent(vehicleName + " car")}`;
+    };
+
+    const fetchFleetData = useCallback(async () => {
         try {
             setLoading(true);
-            const searchType = selectedCategory === 'All' ? '' : selectedCategory;
-            const response = await CustomerService.searchVehicles({ 
-                type: searchType, 
-                days: 1, 
-                count: 1 
+            const response = await apiClient.get('/vehicles/available'); 
+            const allVehicles = Array.isArray(response.data) ? response.data : [];
+            setVehicles(allVehicles);
+
+            const uniqueTypes = [...new Set(allVehicles.map(v => v.vehicleType))];
+            setAvailableCategories(['All', ...uniqueTypes]);
+
+            const imageMap = {};
+            allVehicles.forEach(vehicle => {
+                if (!imageMap[vehicle.vehicleType]) {
+                    imageMap[vehicle.vehicleType] = getVehicleImage(vehicle.vehicleType);
+                }
             });
-            setVehicles(Array.isArray(response.data) ? response.data : []);
+            setVehicleImages(imageMap);
+
         } catch (err) {
             console.error("Failed to load fleet data", err);
             setVehicles([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchFleet(category);
-    }, [category]);
+        fetchFleetData();
+    }, [fetchFleetData]);
+
+    const processedVehicles = useMemo(() => {
+        let result = [...vehicles];
+        if (category !== 'All') {
+            result = result.filter(v => v.vehicleType === category);
+        }
+        if (searchQuery) {
+            result = result.filter(v => 
+                v.vehicleType.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        if (sortOrder === "low") result.sort((a, b) => a.baseRatePerDay - b.baseRatePerDay);
+        if (sortOrder === "high") result.sort((a, b) => b.baseRatePerDay - a.baseRatePerDay);
+        return result;
+    }, [vehicles, category, searchQuery, sortOrder]);
 
     const fadeInUp = {
         initial: { opacity: 0, y: 30 },
@@ -52,143 +85,127 @@ const Fleet = () => {
 
     return (
         <Box sx={{ bgcolor: DARK_BG, color: '#fff', minHeight: '100vh', pb: 10 }}>
-            
-            {/* --- 1. HERO HEADER --- */}
             <Box sx={{ 
-                position: 'relative',
-                py: { xs: 10, md: 15 }, 
-                textAlign: 'center', 
+                position: 'relative', py: { xs: 8, md: 12 }, textAlign: 'center', 
                 backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.95)), url(${HERO_BG})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed',
                 borderBottom: '1px solid rgba(255,255,255,0.1)'
             }}>
                 <Container maxWidth="md">
                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center" mb={2}>
-                            <DirectionsCarIcon sx={{ color: PRIMARY_ORANGE }} />
-                            <Typography variant="h6" color={PRIMARY_ORANGE} fontWeight="800" sx={{ letterSpacing: 6 }}>
-                                DRIVEEASE ELITE
-                            </Typography>
-                        </Stack>
-                        <Typography variant="h1" fontWeight="900" sx={{ fontSize: { xs: '3rem', md: '4.5rem' }, textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                            PREMIUM <span style={{ color: PRIMARY_ORANGE }}>FLEET</span>
+                        <Typography variant="h2" fontWeight="900" sx={{ fontSize: { xs: '2.5rem', md: '4rem' } }}>
+                            ELITE <span style={{ color: PRIMARY_ORANGE }}>FLEET</span>
                         </Typography>
-                        <Typography variant="body1" sx={{ mt: 3, color: 'rgba(255,255,255,0.7)', maxWidth: '600px', mx: 'auto', fontSize: '1.1rem' }}>
-                            Precision steering and elite analytics. Choose your perfect companion for the Sri Lankan roads.
+                        <Typography variant="body1" sx={{ mt: 2, color: 'rgba(255,255,255,0.6)' }}>
+                            Premium Selection. Instant Filtering. No Hidden Costs.
                         </Typography>
                     </motion.div>
                 </Container>
             </Box>
 
-            <Container maxWidth="lg" sx={{ mt: -5, position: 'relative', zIndex: 2 }}>
-                
-                {/* --- 2. GLASS FILTER TABS (Paper used correctly here) --- */}
-                <Paper sx={{ 
-                    p: 1.5, 
-                    bgcolor: 'rgba(20, 20, 20, 0.8)', 
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: 0,
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    mb: 8
-                }}>
-                    <Stack alignItems="center">
-                        <Tabs 
-                            value={category} 
-                            onChange={(e, val) => setCategory(val)} 
-                            textColor="inherit" 
-                            TabIndicatorProps={{ style: { backgroundColor: PRIMARY_ORANGE, height: 3 } }}
-                            sx={{ 
-                                '& .MuiTab-root': { fontWeight: '800', fontSize: '0.9rem', letterSpacing: 2, px: { xs: 2, md: 5 }, color: 'rgba(255,255,255,0.5)' },
-                                '& .Mui-selected': { color: PRIMARY_ORANGE }
+            <Container maxWidth="lg" sx={{ mt: -4, position: 'relative', zIndex: 2 }}>
+                <Paper sx={{ p: 4, bgcolor: 'rgba(20, 20, 20, 0.95)', backdropFilter: 'blur(10px)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', mb: 4 }}>
+                    <Stack spacing={4} alignItems="center"> {/* 🔥 Everything centered here */}
+                        
+                        {/* 🔍 SEARCH BAR */}
+                        <TextField 
+                            fullWidth placeholder="Search vehicle name..." 
+                            variant="outlined" size="small"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            sx={{ maxWidth: 600 }}
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: PRIMARY_ORANGE }} /></InputAdornment>,
+                                sx: { 
+                                    color: '#fff', 
+                                    bgcolor: 'rgba(255,255,255,0.05)', 
+                                    borderRadius: 1,
+                                    '& input::placeholder': { color: 'rgba(255,255,255,0.8)', opacity: 1 }, // 🔥 Brightened placeholder
+                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' }
+                                }
                             }}
-                        >
-                            <Tab value="All" label="ALL UNITS" />
-                            <Tab value="SUV" label="SUVS" />
-                            <Tab value="Sedan" label="SEDANS" />
-                            <Tab value="Luxury" label="LUXURY" />
-                        </Tabs>
+                        />
+
+                        {/* 🔥 CENTERED & BRIGHT TABS */}
+                        <Box sx={{ width: '100%', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center' }}>
+                            <Tabs 
+                                value={category} onChange={(e, val) => setCategory(val)} 
+                                variant="scrollable" scrollButtons="auto" 
+                                centered
+                                TabIndicatorProps={{ style: { backgroundColor: PRIMARY_ORANGE, height: 3 } }}
+                                sx={{ 
+                                    '& .MuiTab-root': { 
+                                        fontWeight: '800', 
+                                        fontSize: '0.85rem', 
+                                        letterSpacing: 1.5,
+                                        color: 'rgba(255,255,255,0.5)', // 🔥 Non-selected visible gray
+                                        transition: '0.3s',
+                                        '&:hover': { color: '#fff' }
+                                    },
+                                    '& .Mui-selected': { color: `${PRIMARY_ORANGE} !important` }
+                                }}
+                            >
+                                {availableCategories.map((cat) => (
+                                    <Tab key={cat} value={cat} label={cat.toUpperCase()} />
+                                ))}
+                            </Tabs>
+                        </Box>
+
+                        {/* ⚖️ SORT SELECT */}
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                            <Select 
+                                value={sortOrder} 
+                                onChange={(e) => setSortOrder(e.target.value)}
+                                sx={{ 
+                                    color: '#fff', 
+                                    bgcolor: 'rgba(255,255,255,0.05)',
+                                    '& .MuiSelect-icon': { color: PRIMARY_ORANGE }
+                                }}
+                            >
+                                <MenuItem value="none">Sort by: Default</MenuItem>
+                                <MenuItem value="low">Price: Low to High</MenuItem>
+                                <MenuItem value="high">Price: High to Low</MenuItem>
+                            </Select>
+                        </FormControl>
                     </Stack>
                 </Paper>
 
-                {/* --- 3. LIVE GRID --- */}
                 {loading ? (
-                    <Box sx={{ textAlign: 'center', py: 15 }}>
-                        <CircularProgress sx={{ color: PRIMARY_ORANGE }} />
-                        <Typography sx={{ mt: 2, opacity: 0.5, letterSpacing: 2 }}>ANALYZING {category.toUpperCase()} FLEET...</Typography>
-                    </Box>
+                    <Box sx={{ textAlign: 'center', py: 15 }}><CircularProgress sx={{ color: PRIMARY_ORANGE }} /></Box>
                 ) : (
                     <Grid container spacing={4} justifyContent="center">
                         <AnimatePresence mode='wait'>
-                            {vehicles.length > 0 ? vehicles.map((car, index) => (
-                                <Grid item xs={12} sm={6} md={4} key={car.contractId || car.id || index}>
-                                    <motion.div {...fadeInUp} transition={{ delay: index * 0.1 }}>
+                            {processedVehicles.map((car, index) => (
+                                <Grid item xs={12} sm={6} md={4} key={car.contractId || index}>
+                                    <motion.div {...fadeInUp} transition={{ delay: index * 0.05 }}>
                                         <Card sx={{ 
-                                            borderRadius: 0, 
-                                            bgcolor: 'rgba(15, 15, 15, 0.9)', 
-                                            backdropFilter: 'blur(5px)',
-                                            color: '#fff', 
-                                            border: '1px solid rgba(255,255,255,0.05)',
-                                            height: '100%', 
-                                            display: 'flex', 
-                                            flexDirection: 'column',
-                                            transition: '0.4s',
-                                            '&:hover': { borderColor: PRIMARY_ORANGE, transform: 'translateY(-10px)', boxShadow: `0 10px 30px ${PRIMARY_ORANGE}33` }
+                                            borderRadius: 2, bgcolor: '#0a0a0a', color: '#fff', border: '1px solid #222',
+                                            transition: '0.3s', '&:hover': { borderColor: PRIMARY_ORANGE, transform: 'translateY(-5px)' }
                                         }}>
-                                            <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                                                <CardMedia 
-                                                    component="img" 
-                                                    height="260" 
-                                                    image={car.imageUrl || "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600"} 
-                                                    alt={car.vehicleType}
-                                                    sx={{ transition: '0.5s', '&:hover': { scale: 1.1 } }}
-                                                />
-                                                <Box sx={{ position: 'absolute', top: 0, left: 0, p: 2 }}>
-                                                    <Chip label="AVAILABLE" size="small" sx={{ bgcolor: '#1b3320', color: '#4caf50', borderRadius: 0, fontWeight: 'bold', fontSize: '0.7rem' }} />
-                                                </Box>
-                                                <Chip 
-                                                    label={`LKR ${car.finalPrice?.toLocaleString() || '0'} / DAY`}
-                                                    sx={{ 
-                                                        position: 'absolute', bottom: 20, right: 0, 
-                                                        bgcolor: PRIMARY_ORANGE, color: '#fff', fontWeight: '900', borderRadius: 0, px: 1
-                                                    }} 
-                                                />
+                                            <Box sx={{ position: 'relative' }}>
+                                                <CardMedia component="img" height="220" image={vehicleImages[car.vehicleType] || ""} alt={car.vehicleType} />
+                                                <Chip label={`LKR ${car.baseRatePerDay?.toLocaleString()}`} sx={{ position: 'absolute', top: 15, right: 15, bgcolor: PRIMARY_ORANGE, color: '#fff', fontWeight: 'bold', borderRadius: 1 }} />
                                             </Box>
 
-                                            <CardContent sx={{ p: 4, textAlign: 'center', flexGrow: 1 }}>
-                                                <Typography variant="h5" fontWeight="900" mb={1} sx={{ letterSpacing: 1 }}>
-                                                    {(car.vehicleType || "Vehicle").toUpperCase()}
-                                                </Typography>
-                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', letterSpacing: 1 }}>
-                                                    ENGINEERED BY: {car.providerName || "DRIVEEASE ELITE"}
-                                                </Typography>
+                                            <CardContent sx={{ p: 3 }}>
+                                                <Typography variant="h6" fontWeight="800" gutterBottom>{car.vehicleType.toUpperCase()}</Typography>
                                                 
-                                                <Stack direction="row" justifyContent="center" spacing={4} my={4}>
-                                                    <Stack alignItems="center">
-                                                        <LocalGasStationIcon sx={{ color: PRIMARY_ORANGE, fontSize: 20, mb: 0.5 }} />
-                                                        <Typography variant="caption" sx={{ opacity: 0.6 }}>Hybrid</Typography>
-                                                    </Stack>
-                                                    <Stack alignItems="center">
-                                                        <SettingsIcon sx={{ color: PRIMARY_ORANGE, fontSize: 20, mb: 0.5 }} />
-                                                        <Typography variant="caption" sx={{ opacity: 0.6 }}>Tiptronic</Typography>
-                                                    </Stack>
-                                                    <Stack alignItems="center">
-                                                        <PeopleIcon sx={{ color: PRIMARY_ORANGE, fontSize: 20, mb: 0.5 }} />
-                                                        <Typography variant="caption" sx={{ opacity: 0.6 }}>Luxury</Typography>
-                                                    </Stack>
+                                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5, mb: 2, opacity: 0.7 }}>
+                                                    <StorefrontIcon sx={{ fontSize: 16, color: PRIMARY_ORANGE }} />
+                                                    <Typography variant="caption" fontWeight="600">{car.providerName || "Elite Rentals SL"}</Typography>
                                                 </Stack>
 
-                                                <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 3 }} />
+                                                <Stack direction="row" spacing={3} sx={{ my: 2, opacity: 0.8 }}>
+                                                    <Stack direction="row" alignItems="center" spacing={1}><SettingsIcon sx={{ fontSize: 18, color: PRIMARY_ORANGE }} /><Typography variant="caption">{car.vehicleType.includes('Wagon') ? 'Auto' : 'Manual'}</Typography></Stack>
+                                                    <Stack direction="row" alignItems="center" spacing={1}><LocalGasStationIcon sx={{ fontSize: 18, color: PRIMARY_ORANGE }} /><Typography variant="caption">{car.vehicleType.includes('Hybrid') ? 'Hybrid' : 'Petrol'}</Typography></Stack>
+                                                    <Stack direction="row" alignItems="center" spacing={1}><PeopleIcon sx={{ fontSize: 18, color: PRIMARY_ORANGE }} /><Typography variant="caption">5 Seats</Typography></Stack>
+                                                </Stack>
 
+                                                <Divider sx={{ borderColor: '#222', mb: 2 }} />
                                                 <Button 
-                                                    fullWidth variant="contained" 
+                                                    fullWidth variant="outlined" 
                                                     onClick={() => navigate('/search-results')}
-                                                    sx={{ 
-                                                        bgcolor: 'transparent', border: `1px solid ${PRIMARY_ORANGE}`, color: '#fff', 
-                                                        borderRadius: 0, py: 1.5, fontWeight: '900', letterSpacing: 2,
-                                                        '&:hover': { bgcolor: PRIMARY_ORANGE, color: '#000' }
-                                                    }}
+                                                    sx={{ borderColor: PRIMARY_ORANGE, color: PRIMARY_ORANGE, fontWeight: 'bold', borderRadius: 1, '&:hover': { bgcolor: PRIMARY_ORANGE, color: '#000' } }}
                                                 >
                                                     BOOK NOW
                                                 </Button>
@@ -196,12 +213,7 @@ const Fleet = () => {
                                         </Card>
                                     </motion.div>
                                 </Grid>
-                            )) : (
-                                <Box sx={{ textAlign: 'center', py: 10, opacity: 0.5 }}>
-                                    <Typography variant="h6">No vehicles found in {category}.</Typography>
-                                    <Typography variant="body2">Our analytics engine is searching for more units.</Typography>
-                                </Box>
-                            )}
+                            ))}
                         </AnimatePresence>
                     </Grid>
                 )}

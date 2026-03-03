@@ -22,8 +22,7 @@ const Login = () => {
 
     /**
      * handleLogin processes the authentication request.
-     * Regardless of the user role (Admin, Agent, or Customer), 
-     * the user will be redirected to the Home Page (/) upon success.
+     * Updated to handle JWT Token storage and Role-based redirection.
      */
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -33,18 +32,20 @@ const Login = () => {
             
             // Sending login request to backend
             const response = await AuthService.login({ username, password });
-            const { role, userId } = response.data;
+            
+            // 🔥 Destructuring JWT Token and other details from response
+            const { token, role, userId, redirectUrl } = response.data;
 
-            // Persisting user identity in local storage for session management
+            // 🔥 Persisting JWT Token and identity in local storage
+            localStorage.setItem('token', token); // Meka nisa thama dan API calls lock wenne naththe
             localStorage.setItem('role', role); 
             localStorage.setItem('userId', userId);
 
             /**
              * REDIRECTION LOGIC:
-             * Every user is forced to the Home Page first.
-             * They can access their specific dashboards via the Navbar.
+             * Redirects user to the specific path sent by the backend logic.
              */
-            navigate('/'); 
+            navigate(redirectUrl || '/'); 
 
         } catch (err) {
             setError('Authentication failed. Please check credentials.');
@@ -88,7 +89,7 @@ const Login = () => {
                     </motion.div>
                 </Grid>
 
-                {/* RIGHT SIDE: GLASS-MORPHISM LOGIN FORM (CENTERED VERTICALLY) */}
+                {/* RIGHT SIDE: GLASS-MORPHISM LOGIN FORM */}
                 <Grid item xs={12} md={5} sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
