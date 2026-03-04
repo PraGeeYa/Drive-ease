@@ -5,49 +5,47 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * The ContactMessage entity represents a customer inquiry or support message.
- * This class maps directly to a table in the database to store feedback
- * or questions submitted through the 'Contact Us' form.
+ * ContactMessage Entity - Represents user inquiries from the support form.
+ * This class is mapped to a database table to persist messages sent by visitors.
  */
 @Entity
-@Data // Lombok annotation to generate getters, setters, and utility methods automatically
+@Data // Automatically handles Getters, Setters, and toString methods via Lombok
 public class ContactMessage {
 
     /**
-     * Unique Identifier for each message.
-     * GenerationType.IDENTITY ensures the ID is auto-incremented by the database.
+     * PRIMARY KEY: Unique ID for each message.
+     * Identity strategy ensures the database handles auto-incrementing.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Personal details of the sender.
+     * Basic identification of the person reaching out.
      */
     private String firstName;
     private String lastName;
 
     /**
-     * Contact email address provided by the user for replies.
+     * The sender's email address used for follow-up communications.
      */
     private String email;
 
     /**
-     * A brief headline or category for the user's message.
+     * The primary reason or category for the message (e.g., "Billing", "Fleet Inquiry").
      */
     private String subject;
 
     /**
-     * The detailed content of the inquiry.
-     * The columnDefinition = "TEXT" allows for long messages that
-     * exceed the standard 255 character limit.
+     * The core content of the user's inquiry.
+     * Uses 'TEXT' definition in SQL to support long paragraphs instead of standard 'VARCHAR(255)'.
      */
     @Column(columnDefinition = "TEXT")
     private String message;
 
     /**
-     * Automatically records the exact timestamp when the message was sent.
-     * Initialized to current system time by default.
+     * AUDIT FIELD: Captures the exact moment the message was saved.
+     * Defaults to the current system time during object creation.
      */
     private LocalDateTime submittedAt = LocalDateTime.now();
 }

@@ -11,6 +11,7 @@ import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import NoCrashIcon from '@mui/icons-material/NoCrash'; // Status icon
 import apiClient from '../api/apiClient';
 
 const Fleet = () => {
@@ -32,10 +33,11 @@ const Fleet = () => {
         return `https://loremflickr.com/800/600/${encodeURIComponent(vehicleName + " car")}`;
     };
 
+    // FETCH FLEET DATA (Includes both Available and Rented for Display)
     const fetchFleetData = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await apiClient.get('/vehicles/available'); 
+            const response = await apiClient.get('/vehicles/available'); // Assuming backend returns based on logic
             const allVehicles = Array.isArray(response.data) ? response.data : [];
             setVehicles(allVehicles);
 
@@ -85,6 +87,7 @@ const Fleet = () => {
 
     return (
         <Box sx={{ bgcolor: DARK_BG, color: '#fff', minHeight: '100vh', pb: 10 }}>
+            {/* --- HERO SECTION --- */}
             <Box sx={{ 
                 position: 'relative', py: { xs: 8, md: 12 }, textAlign: 'center', 
                 backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.95)), url(${HERO_BG})`,
@@ -93,23 +96,22 @@ const Fleet = () => {
             }}>
                 <Container maxWidth="md">
                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                        <Typography variant="h2" fontWeight="900" sx={{ fontSize: { xs: '2.5rem', md: '4rem' } }}>
+                        <Typography variant="h2" fontWeight="900" sx={{ fontSize: { xs: '2.5rem', md: '4rem' }, letterSpacing: -1 }}>
                             ELITE <span style={{ color: PRIMARY_ORANGE }}>FLEET</span>
                         </Typography>
-                        <Typography variant="body1" sx={{ mt: 2, color: 'rgba(255,255,255,0.6)' }}>
+                        <Typography variant="body1" sx={{ mt: 2, color: 'rgba(255,255,255,0.6)', letterSpacing: 2, fontWeight: 500 }}>
                             Premium Selection. Instant Filtering. No Hidden Costs.
                         </Typography>
                     </motion.div>
                 </Container>
             </Box>
 
+            {/* --- CONTROL BAR --- */}
             <Container maxWidth="lg" sx={{ mt: -4, position: 'relative', zIndex: 2 }}>
-                <Paper sx={{ p: 4, bgcolor: 'rgba(20, 20, 20, 0.95)', backdropFilter: 'blur(10px)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', mb: 4 }}>
-                    <Stack spacing={4} alignItems="center"> {/* 🔥 Everything centered here */}
-                        
-                        {/* 🔍 SEARCH BAR */}
+                <Paper sx={{ p: 4, bgcolor: 'rgba(15, 15, 15, 0.98)', backdropFilter: 'blur(10px)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', mb: 4, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                    <Stack spacing={4} alignItems="center">
                         <TextField 
-                            fullWidth placeholder="Search vehicle name..." 
+                            fullWidth placeholder="Search vehicle models (e.g. Toyota, Prius)..." 
                             variant="outlined" size="small"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -118,16 +120,15 @@ const Fleet = () => {
                                 startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: PRIMARY_ORANGE }} /></InputAdornment>,
                                 sx: { 
                                     color: '#fff', 
-                                    bgcolor: 'rgba(255,255,255,0.05)', 
+                                    bgcolor: 'rgba(255,255,255,0.03)', 
                                     borderRadius: 1,
-                                    '& input::placeholder': { color: 'rgba(255,255,255,0.8)', opacity: 1 }, // 🔥 Brightened placeholder
-                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' }
+                                    '& input::placeholder': { color: 'rgba(255,255,255,0.7)', opacity: 1 },
+                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' }
                                 }
                             }}
                         />
 
-                        {/* 🔥 CENTERED & BRIGHT TABS */}
-                        <Box sx={{ width: '100%', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center' }}>
+                        <Box sx={{ width: '100%', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center' }}>
                             <Tabs 
                                 value={category} onChange={(e, val) => setCategory(val)} 
                                 variant="scrollable" scrollButtons="auto" 
@@ -135,11 +136,8 @@ const Fleet = () => {
                                 TabIndicatorProps={{ style: { backgroundColor: PRIMARY_ORANGE, height: 3 } }}
                                 sx={{ 
                                     '& .MuiTab-root': { 
-                                        fontWeight: '800', 
-                                        fontSize: '0.85rem', 
-                                        letterSpacing: 1.5,
-                                        color: 'rgba(255,255,255,0.5)', // 🔥 Non-selected visible gray
-                                        transition: '0.3s',
+                                        fontWeight: '800', fontSize: '0.85rem', letterSpacing: 1.5,
+                                        color: 'rgba(255,255,255,0.4)', transition: '0.3s',
                                         '&:hover': { color: '#fff' }
                                     },
                                     '& .Mui-selected': { color: `${PRIMARY_ORANGE} !important` }
@@ -151,15 +149,14 @@ const Fleet = () => {
                             </Tabs>
                         </Box>
 
-                        {/* ⚖️ SORT SELECT */}
-                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <FormControl size="small" sx={{ minWidth: 220 }}>
                             <Select 
                                 value={sortOrder} 
                                 onChange={(e) => setSortOrder(e.target.value)}
                                 sx={{ 
-                                    color: '#fff', 
-                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                    '& .MuiSelect-icon': { color: PRIMARY_ORANGE }
+                                    color: '#fff', bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1,
+                                    '& .MuiSelect-icon': { color: PRIMARY_ORANGE },
+                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' }
                                 }}
                             >
                                 <MenuItem value="none">Sort by: Default</MenuItem>
@@ -170,52 +167,92 @@ const Fleet = () => {
                     </Stack>
                 </Paper>
 
+                {/* --- VEHICLE GRID --- */}
                 {loading ? (
                     <Box sx={{ textAlign: 'center', py: 15 }}><CircularProgress sx={{ color: PRIMARY_ORANGE }} /></Box>
                 ) : (
                     <Grid container spacing={4} justifyContent="center">
                         <AnimatePresence mode='wait'>
-                            {processedVehicles.map((car, index) => (
-                                <Grid item xs={12} sm={6} md={4} key={car.contractId || index}>
-                                    <motion.div {...fadeInUp} transition={{ delay: index * 0.05 }}>
-                                        <Card sx={{ 
-                                            borderRadius: 2, bgcolor: '#0a0a0a', color: '#fff', border: '1px solid #222',
-                                            transition: '0.3s', '&:hover': { borderColor: PRIMARY_ORANGE, transform: 'translateY(-5px)' }
-                                        }}>
-                                            <Box sx={{ position: 'relative' }}>
-                                                <CardMedia component="img" height="220" image={vehicleImages[car.vehicleType] || ""} alt={car.vehicleType} />
-                                                <Chip label={`LKR ${car.baseRatePerDay?.toLocaleString()}`} sx={{ position: 'absolute', top: 15, right: 15, bgcolor: PRIMARY_ORANGE, color: '#fff', fontWeight: 'bold', borderRadius: 1 }} />
-                                            </Box>
+                            {processedVehicles.map((car, index) => {
+                                // Logic to check availability based on backend boolean
+                                const isAvailable = car.availabilityStatus; 
 
-                                            <CardContent sx={{ p: 3 }}>
-                                                <Typography variant="h6" fontWeight="800" gutterBottom>{car.vehicleType.toUpperCase()}</Typography>
-                                                
-                                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5, mb: 2, opacity: 0.7 }}>
-                                                    <StorefrontIcon sx={{ fontSize: 16, color: PRIMARY_ORANGE }} />
-                                                    <Typography variant="caption" fontWeight="600">{car.providerName || "Elite Rentals SL"}</Typography>
-                                                </Stack>
+                                return (
+                                    <Grid item xs={12} sm={6} md={4} key={car.contractId || index}>
+                                        <motion.div {...fadeInUp} transition={{ delay: index * 0.05 }}>
+                                            <Card sx={{ 
+                                                borderRadius: 2, bgcolor: '#0a0a0a', color: '#fff', border: '1px solid #222',
+                                                transition: '0.4s', position: 'relative',
+                                                filter: isAvailable ? 'none' : 'grayscale(0.8) opacity(0.7)', // Grayscale if rented
+                                                '&:hover': { borderColor: isAvailable ? PRIMARY_ORANGE : '#222', transform: isAvailable ? 'translateY(-8px)' : 'none' }
+                                            }}>
+                                                {/* PRICE CHIP */}
+                                                <Chip 
+                                                    label={`LKR ${car.baseRatePerDay?.toLocaleString()}`} 
+                                                    sx={{ 
+                                                        position: 'absolute', top: 15, right: 15, zIndex: 3,
+                                                        bgcolor: isAvailable ? PRIMARY_ORANGE : '#555', color: '#fff', fontWeight: 'bold', borderRadius: 1 
+                                                    }} 
+                                                />
 
-                                                <Stack direction="row" spacing={3} sx={{ my: 2, opacity: 0.8 }}>
-                                                    <Stack direction="row" alignItems="center" spacing={1}><SettingsIcon sx={{ fontSize: 18, color: PRIMARY_ORANGE }} /><Typography variant="caption">{car.vehicleType.includes('Wagon') ? 'Auto' : 'Manual'}</Typography></Stack>
-                                                    <Stack direction="row" alignItems="center" spacing={1}><LocalGasStationIcon sx={{ fontSize: 18, color: PRIMARY_ORANGE }} /><Typography variant="caption">{car.vehicleType.includes('Hybrid') ? 'Hybrid' : 'Petrol'}</Typography></Stack>
-                                                    <Stack direction="row" alignItems="center" spacing={1}><PeopleIcon sx={{ fontSize: 18, color: PRIMARY_ORANGE }} /><Typography variant="caption">5 Seats</Typography></Stack>
-                                                </Stack>
+                                                {/* AVAILABILITY OVERLAY */}
+                                                {!isAvailable && (
+                                                    <Box sx={{ position: 'absolute', top: '25%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, bgcolor: 'rgba(0,0,0,0.8)', px: 3, py: 1, border: '2px solid #555' }}>
+                                                        <Typography variant="h6" fontWeight="900" sx={{ letterSpacing: 2, color: '#aaa' }}>RENTED</Typography>
+                                                    </Box>
+                                                )}
 
-                                                <Divider sx={{ borderColor: '#222', mb: 2 }} />
-                                                <Button 
-                                                    fullWidth variant="outlined" 
-                                                    onClick={() => navigate('/search-results')}
-                                                    sx={{ borderColor: PRIMARY_ORANGE, color: PRIMARY_ORANGE, fontWeight: 'bold', borderRadius: 1, '&:hover': { bgcolor: PRIMARY_ORANGE, color: '#000' } }}
-                                                >
-                                                    BOOK NOW
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </motion.div>
-                                </Grid>
-                            ))}
+                                                <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+                                                    <CardMedia component="img" height="220" image={vehicleImages[car.vehicleType] || ""} alt={car.vehicleType} sx={{ transition: '0.5s', '&:hover': { transform: isAvailable ? 'scale(1.1)' : 'none' } }} />
+                                                </Box>
+
+                                                <CardContent sx={{ p: 3 }}>
+                                                    <Typography variant="h6" fontWeight="800" gutterBottom sx={{ letterSpacing: 1 }}>{car.vehicleType.toUpperCase()}</Typography>
+                                                    
+                                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5, mb: 3, opacity: 0.6 }}>
+                                                        <StorefrontIcon sx={{ fontSize: 16, color: isAvailable ? PRIMARY_ORANGE : '#555' }} />
+                                                        <Typography variant="caption" fontWeight="600">{car.provider?.providerName || "Elite Rentals SL"}</Typography>
+                                                    </Stack>
+
+                                                    <Stack direction="row" justifyContent="space-between" sx={{ my: 2, opacity: 0.8 }}>
+                                                        <Stack direction="row" alignItems="center" spacing={1}><SettingsIcon sx={{ fontSize: 16, color: PRIMARY_ORANGE }} /><Typography variant="caption">Auto</Typography></Stack>
+                                                        <Stack direction="row" alignItems="center" spacing={1}><LocalGasStationIcon sx={{ fontSize: 16, color: PRIMARY_ORANGE }} /><Typography variant="caption">Hybrid</Typography></Stack>
+                                                        <Stack direction="row" alignItems="center" spacing={1}><PeopleIcon sx={{ fontSize: 16, color: PRIMARY_ORANGE }} /><Typography variant="caption">5 Seats</Typography></Stack>
+                                                    </Stack>
+
+                                                    <Divider sx={{ borderColor: '#222', mb: 2.5 }} />
+
+                                                    {isAvailable ? (
+                                                        <Button 
+                                                            fullWidth variant="contained" 
+                                                            onClick={() => navigate(`/search-results`)}
+                                                            sx={{ bgcolor: PRIMARY_ORANGE, color: '#fff', fontWeight: 'bold', py: 1.2, borderRadius: 1, '&:hover': { bgcolor: '#fff', color: '#000' } }}
+                                                        >
+                                                            BOOK NOW
+                                                        </Button>
+                                                    ) : (
+                                                        <Button 
+                                                            disabled fullWidth variant="outlined" 
+                                                            sx={{ borderColor: '#333 !important', color: '#555 !important', py: 1.2, borderRadius: 1 }}
+                                                        >
+                                                            UNAVAILABLE
+                                                        </Button>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    </Grid>
+                                );
+                            })}
                         </AnimatePresence>
                     </Grid>
+                )}
+                
+                {!loading && processedVehicles.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 10 }}>
+                        <NoCrashIcon sx={{ fontSize: 60, opacity: 0.2, mb: 2 }} />
+                        <Typography variant="h6" sx={{ opacity: 0.5 }}>No vehicles found matching your criteria.</Typography>
+                    </Box>
                 )}
             </Container>
         </Box>

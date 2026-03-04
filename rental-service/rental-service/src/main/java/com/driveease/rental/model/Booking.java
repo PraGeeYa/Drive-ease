@@ -6,87 +6,84 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * The Booking entity represents a finalized car rental transaction in the database.
- * It maps to the 'booking' table and maintains relationships between vehicles,
- * customers, and agents.
+ * Booking Entity - Represents a finalized car rental transaction.
+ * This class maps directly to the 'booking' table in the MySQL database.
  */
 @Entity
 @Table(name = "booking")
 public class Booking {
 
     /**
-     * Unique Primary Key for each booking record.
-     * Automatically incremented by the database.
+     * PRIMARY KEY: Unique identifier for each booking.
+     * GenerationType.IDENTITY ensures auto-increment behavior in the database.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long bookingId;
 
     /**
-     * Relationship to the specific vehicle contract being booked.
-     * A booking must always be linked to a valid contract.
+     * RELATIONSHIP: Links the booking to a specific vehicle class/rate.
+     * @ManyToOne indicates that many bookings can be made for one vehicle contract.
      */
     @ManyToOne
     @JoinColumn(name = "contract_id", nullable = false)
     private VehicleContract vehicleContract;
 
     /**
-     * Relationship to the User who is the Customer.
-     * nullable = true allows agents to create bookings even if a
-     * registered customer account isn't linked yet.
+     * RELATIONSHIP: Links the booking to the Customer.
+     * Set to nullable=true to support flexible scenarios where a profile might not exist yet.
      */
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = true)
     private User customer;
 
     /**
-     * Relationship to the User who is the Support Agent handling this booking.
-     * Every confirmed booking must be processed by an authorized agent.
+     * RELATIONSHIP: Links the booking to the Support Agent.
+     * Mandates that every booking must have a handling agent assigned.
      */
     @ManyToOne
     @JoinColumn(name = "agent_id", nullable = false)
     private User agent;
 
     /**
-     * Name of the customer (Useful for guest checkouts or verification).
+     * Stores the customer's display name for quick reference and guest tracking.
      */
     private String customerName;
 
     /**
-     * Any special instructions or custom needs provided by the customer.
+     * Captures custom notes, such as baby seats, chauffeur needs, or special routes.
      */
     private String requirements;
 
     /**
-     * The scheduled date for the vehicle pickup.
+     * The date the customer plans to collect the vehicle.
      */
     private LocalDate pickupDate;
 
     /**
-     * Total number of days for the rental duration.
+     * The duration of the rental agreement in days.
      */
     private int rentalDays;
 
     /**
-     * The number of vehicles reserved under this booking.
+     * The number of units of the chosen vehicle type reserved in this transaction.
      */
     private int vehicleCount;
 
     /**
-     * The total calculated cost for the entire rental period.
-     * Uses BigDecimal for high financial precision.
+     * The total financial value of the deal.
+     * BigDecimal is used to avoid floating-point rounding errors in money.
      */
     private BigDecimal finalPrice;
 
     /**
-     * Timestamp indicating exactly when the booking was created in the system.
+     * AUDIT FIELD: Automatically records when the transaction entered the system.
      */
     @Column(nullable = false, updatable = false)
     private LocalDateTime bookingDate;
 
     /**
-     * Lifecycle callback method to automatically set the current
-     * timestamp before saving the record for the first time.
+     * ENTITY CALLBACK: Sets the 'bookingDate' automatically just before the row is created.
      */
     @PrePersist
     protected void onCreate() {
@@ -94,7 +91,7 @@ public class Booking {
     }
 
     // ========================================================================
-    // GETTERS AND SETTERS
+    // GETTERS AND SETTERS (Standard Boilerplate)
     // ========================================================================
 
     public Long getBookingId() { return bookingId; }

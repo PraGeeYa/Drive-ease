@@ -41,9 +41,17 @@ const AgentRequests = () => {
 
     const handleApprove = async (req) => {
         try {
+            /**
+             * EMAIL FIX: 
+             * Added customerEmail, customerName, and car to the payload.
+             * The Backend EmailService needs these fields to send the HTML email.
+             */
             const payload = {
                 requestId: req.requestId,
                 customerId: req.customer.userId,
+                customerEmail: req.customer.email || req.customerEmail, // Pass email for the recipient
+                customerName: req.customer.username, // For the "Dear [Name]" part
+                car: req.vehicleType, // For the "Vehicle Reserved" part
                 agentId: agentId,
                 contractId: req.vehicleContract.contractId,
                 vehicleCount: 1, 

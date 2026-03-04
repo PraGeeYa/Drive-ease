@@ -8,9 +8,11 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
 /**
- * EmailService is responsible for processing HTML templates and sending
- * personalized emails to customers.
+ * EmailService - Handles automated HTML email notifications.
+ * This service merges dynamic booking data with Thymeleaf templates
+ * to send professional confirmation emails to customers.
  */
 @Service
 public class EmailService {
@@ -19,46 +21,50 @@ public class EmailService {
     private JavaMailSender mailSender;
 
     @Autowired
-    private TemplateEngine templateEngine; // Thymeleaf logic එක handle කරන්නේ මෙයා
+    private TemplateEngine templateEngine; // Responsible for processing Thymeleaf HTML templates
 
     /**
-     * Sends a rich HTML booking confirmation email.
-     * @param toEmail Customer's email address
-     * @param name Customer's name
-     * @param car Vehicle model
-     * @param date Pickup date
-     * @param price Final rental price
+     * SEND BOOKING CONFIRMATION
+     * Generates and dispatches a rich HTML email once a booking is approved.
+     * * @param toEmail - The recipient's email address.
+     * @param name    - The customer's display name.
+     * @param car     - The vehicle model/type being rented.
+     * @param date    - The scheduled pickup date.
+     * @param price   - The total final price of the rental.
      */
     public void sendBookingConfirmation(String toEmail, String name, String car, String date, String price) {
         try {
-            // 1. Create a MimeMessage for HTML content
+            // 1. MIME MESSAGE CREATION: Required for sending HTML/Multipart emails
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            // 2. Set Email Metadata
+            // 2. EMAIL METADATA: Setting the recipient and a professional subject line
             helper.setTo(toEmail);
             helper.setSubject("Your DriveEase Booking is Confirmed! ✅");
 
-            // 3. Prepare data for the HTML template (Context)
+            // 3. DATA BINDING (THYMELEAF CONTEXT):
+            // We pass the Java variables into the 'Context' so the HTML template can see them.
             Context context = new Context();
             context.setVariable("customerName", name);
             context.setVariable("vehicle", car);
             context.setVariable("date", date);
             context.setVariable("price", price);
 
-            // 4. Generate the final HTML by merging Template + Data
-            // "booking-confirmation" refers to booking-confirmation.html in resources/templates
+            // 4. TEMPLATE PROCESSING:
+            // Merges the 'booking-confirmation.html' (from resources/templates) with the data.
             String htmlContent = templateEngine.process("booking-confirmation", context);
 
-            // 5. Set the message text as HTML
+            // 5. HTML CONTENT SETTING:
+            // The 'true' flag ensures Spring treats the string as HTML, not plain text.
             helper.setText(htmlContent, true);
 
-            // 6. Send the Email
+            // 6. DISPATCH: Sending the final rendered email through the configured SMTP server
             mailSender.send(message);
-            System.out.println("Sent Email " + toEmail);
+            System.out.println("Confirmation Email successfully sent to: " + toEmail);
 
         } catch (MessagingException e) {
-            System.err.println("Didn't sent " + e.getMessage());
+            // Error handling for SMTP connection issues or template rendering failures
+            System.err.println("Failed to send email to " + toEmail + " | Error: " + e.getMessage());
         }
     }
 }

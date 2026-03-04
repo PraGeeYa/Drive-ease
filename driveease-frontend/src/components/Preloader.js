@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, LinearProgress, Stack } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Oya dapu aluth images tika mekata add kala
+// High-resolution luxury car images for the background slider
 const images = [
     "https://cmg-cmg-rd-20056-prod.cdn.arcpublishing.com/resizer/v2/https%3A%2F%2Fcloudfront-us-east-1.images.arcpublishing.com%2Fcmg%2F6ODU3HAMKYMC77HKMBFFB5O37M.jpg?auth=294b5f28f5435a473cafa45d49bfe0018fa737ce1b96e49ead232e6ed07827ac&width=1200&height=630&smart=true",
     "https://www.luxuryfleet.com.au/wp-content/uploads/2020/01/Luxury-Fleet-Bentley-Continental-GT-V8-Convertible-1.jpg",
-    
 ];
 
+// Contextual messages displayed during the loading process
 const loadingTexts = [
     "INITIALIZING SECURE GATEWAY...",
     "SYNCING PREMIUM FLEET...",
@@ -23,26 +23,37 @@ const Preloader = ({ onFinished }) => {
     const [textIndex, setTextIndex] = useState(0);
     const PRIMARY_ORANGE = "#ff5722"; 
 
-    // Progress bar logic
+    /**
+     * PROGRESS BAR LOGIC
+     * Simulates a loading process by incrementing the progress state randomly.
+     * When it reaches 100%, it triggers the 'onFinished' callback.
+     */
     useEffect(() => {
         const timer = setInterval(() => {
             setProgress((oldProgress) => {
                 if (oldProgress === 100) {
                     clearInterval(timer);
+                    // Slight delay before transitioning to the main site
                     setTimeout(onFinished, 1500); 
                     return 100;
                 }
                 const diff = Math.random() * 12;
                 const newProgress = Math.min(oldProgress + diff, 100);
+                
+                // Maps the loading text index to the current progress percentage
                 const nextIndex = Math.floor((newProgress / 100) * (loadingTexts.length - 1));
                 setTextIndex(nextIndex);
+                
                 return newProgress;
             });
         }, 200);
         return () => clearInterval(timer);
     }, [onFinished]);
 
-    // Image Slider logic
+    /**
+     * IMAGE SLIDER LOGIC
+     * Cycles through the 'images' array every 3 seconds for a dynamic background effect.
+     */
     useEffect(() => {
         const imgTimer = setInterval(() => {
             setCurrentImg((prev) => (prev + 1) % images.length);
@@ -58,12 +69,12 @@ const Preloader = ({ onFinished }) => {
             overflow: 'hidden'
         }}>
             
-            {/* --- 1. MOVING BACKGROUND SLIDER (Ken Burns Effect) --- */}
+            {/* 1. BACKGROUND SLIDER with Framer Motion (Ken Burns Effect) */}
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentImg}
-                    initial={{ opacity: 0, scale: 1.3, x: -30 }} // Zoom wela move wenna patan gannawa
-                    animate={{ opacity: 0.3, scale: 1, x: 0 }} // Lassanata center wenawa
+                    initial={{ opacity: 0, scale: 1.3, x: -30 }}
+                    animate={{ opacity: 0.3, scale: 1, x: 0 }}
                     exit={{ opacity: 0, scale: 0.8, x: 30 }}
                     transition={{ duration: 3, ease: "linear" }}
                     style={{
@@ -75,13 +86,14 @@ const Preloader = ({ onFinished }) => {
                 />
             </AnimatePresence>
 
+            {/* Dark Radial Overlay for better text readability */}
             <Box sx={{ 
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                 background: 'radial-gradient(circle, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%)',
                 zIndex: 0
             }} />
 
-            {/* --- 2. CENTER CONTENT --- */}
+            {/* 2. CENTERED LOGO AND PROGRESS CONTENT */}
             <motion.div 
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }} 
@@ -99,7 +111,7 @@ const Preloader = ({ onFinished }) => {
                     DRIVE<span style={{ color: PRIMARY_ORANGE }}>EASE</span>
                 </Typography>
 
-                {/* --- DYNAMIC LOADING TEXT --- */}
+                {/* Animated Loading Status Text */}
                 <Box sx={{ height: '24px', mb: 6 }}>
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -116,7 +128,7 @@ const Preloader = ({ onFinished }) => {
                     </AnimatePresence>
                 </Box>
 
-                {/* --- 3. PROGRESS BAR --- */}
+                {/* 3. PROGRESS BAR COMPONENT */}
                 <Box sx={{ width: { xs: 280, sm: 400 }, mx: 'auto', position: 'relative' }}>
                     <LinearProgress 
                         variant="determinate" 
@@ -130,6 +142,7 @@ const Preloader = ({ onFinished }) => {
                         }}
                     />
                     
+                    {/* Percentage Display and Establishment Info */}
                     <Stack direction="row" justifyContent="space-between" mt={2}>
                         <Typography variant="h4" sx={{ fontWeight: 900, fontFamily: 'monospace', color: '#fff' }}>
                             {Math.round(progress)}<span style={{fontSize: '1rem', color: PRIMARY_ORANGE}}>%</span>
@@ -146,7 +159,7 @@ const Preloader = ({ onFinished }) => {
                 </Box>
             </motion.div>
 
-            {/* Bottom Status Bar */}
+            {/* Global Brand Values (Bottom Bar) */}
             <Stack 
                 direction="row" 
                 spacing={3} 

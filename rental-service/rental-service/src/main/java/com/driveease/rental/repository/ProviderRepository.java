@@ -5,16 +5,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * ProviderRepository acts as the Data Access Layer for the Provider entity.
- * It leverages Spring Data JPA to provide standard database operations
- * for managing third-party vehicle suppliers.
+ * ProviderRepository - Data Access Layer for third-party vehicle suppliers.
+ * This interface bridges the gap between the application logic and the
+ * 'provider' database table using Spring Data JPA's automated methods.
  */
 @Repository
 public interface ProviderRepository extends JpaRepository<Provider, Long> {
 
-    // This interface automatically inherits powerful methods from JpaRepository:
-    // .save(Provider)      - To register a new car supplier or update existing ones.
-    // .findById(Long)      - To find a specific provider using their ID.
-    // .findAll()           - To list all providers for the Admin Dashboard.
-    // .deleteById(Long)    - To remove a supplier from the system.
+    /**
+     * Note: Since this interface extends JpaRepository, Spring Boot
+     * automatically generates the following functionality at runtime:
+     * * 1. .save(Provider)      - Used by Admin to register new car suppliers.
+     * 2. .findById(Long)      - Retrieves a provider's profile using their Primary Key.
+     * 3. .findAll()           - Fetches all suppliers for the Admin Dashboard view.
+     * 4. .deleteById(Long)    - Permanently removes a supplier from the database.
+     */
 }

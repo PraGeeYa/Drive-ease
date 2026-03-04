@@ -7,42 +7,44 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * VehicleContractRepository manages data access for the vehicle inventory.
- * It provides advanced filtering for availability and agent-specific stock,
- * alongside custom reporting queries for the Admin Dashboard.
+ * VehicleContractRepository - Data Access Layer for the Fleet Inventory.
+ * This interface manages all vehicle-related database operations, from
+ * customer searches to complex admin analytics.
  */
 @Repository
 public interface VehicleContractRepository extends JpaRepository<VehicleContract, Long> {
 
     /**
-     * Retrieves all contracts based on their current rental availability.
-     * @param availabilityStatus True for available cars, False for unavailable/rented.
-     * @return List of vehicle contracts matching the status.
+     * AVAILABILITY FILTER:
+     * Fetches vehicles based on whether they are ready for rent or not.
+     * @param availabilityStatus - True for ready cars, False for booked/maintenance.
      */
     List<VehicleContract> findByAvailabilityStatus(boolean availabilityStatus);
 
     /**
-     * Filters vehicles by both category (e.g., SUV, Sedan) and availability.
-     * This is the primary method used by the Customer search portal.
-     * @param vehicleType The category of the vehicle.
-     * @param availabilityStatus Must be true to show in search results.
+     * SEARCH ENGINE LOGIC:
+     * Combines category filtering with availability checks.
+     * This is the heart of the Customer Search Portal.
+     * @param vehicleType - e.g., "SUV", "Luxury", "Sedan".
      */
     List<VehicleContract> findByVehicleTypeAndAvailabilityStatus(String vehicleType, boolean availabilityStatus);
 
     /**
-     * Specialized Filter: Retrieves all vehicles assigned to a specific Support Agent.
-     * Used in the Agent Portal to show only the inventory they are responsible for.
+     * AGENT-SPECIFIC INVENTORY:
+     * Retrieves all vehicles assigned to a particular Support Agent's profile.
+     * Used in the Agent Dashboard to limit their view to their own fleet.
      */
     List<VehicleContract> findByAgentUserId(Long agentId);
 
     // ========================================================================
-    // ANALYTICS & VISUALIZATION QUERIES
+    // ANALYTICS & VISUALIZATION SECTION
     // ========================================================================
 
     /**
-     * Aggregates the total count of vehicles grouped by their category.
-     * This data is used by the Admin Dashboard to render Pie Charts and Bar Charts.
-     * @return A list of Object arrays where [0] is Vehicle Type and [1] is the Count.
+     * FLEET COMPOSITION ANALYTICS:
+     * Uses JPQL to group vehicles by their type and count them.
+     * Essential for rendering Pie Charts and Bar Charts in the Admin Dashboard.
+     * @return List of arrays: [0] = Type (String), [1] = Count (Long).
      */
     @Query("SELECT vc.vehicleType, COUNT(vc) FROM VehicleContract vc GROUP BY vc.vehicleType")
     List<Object[]> getVehicleTypeStats();

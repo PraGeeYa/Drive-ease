@@ -5,13 +5,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * ContactRepository provides the data access layer for the ContactMessage entity.
- * It inherits all standard CRUD (Create, Read, Update, Delete) operations from JpaRepository,
- * allowing the system to easily store and retrieve customer inquiries.
+ * ContactRepository - The Data Access Layer for site-wide communications.
+ * This interface bridges the gap between the Java application and the
+ * 'contact_message' database table using Spring Data JPA.
  */
 @Repository
 public interface ContactRepository extends JpaRepository<ContactMessage, Long> {
-    // Standard JpaRepository methods handle all basic operations:
-    // .save()    - To store a new message from the contact form.
-    // .findAll() - To list all inquiries in the Admin Dashboard.
+
+    /**
+     * Note: Since this interface extends JpaRepository, we don't need to write
+     * common methods manually. Spring Boot automatically provides:
+     * * 1. .save(ContactMessage) - Used by ContactController to store new inquiries.
+     * 2. .findAll()            - Used by Admin Dashboard to review all feedback.
+     * 3. .deleteById(Long)      - For cleaning up old or spam messages.
+     */
 }

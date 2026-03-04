@@ -4,31 +4,36 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 /**
- * The Provider entity represents a third-party vehicle supplier or rental partner.
- * This class maps to the 'provider' table in the database and stores
- * essential contact information for business entities offering their fleet.
+ * Provider Entity - Represents a third-party vehicle supplier or partner.
+ * This class maps directly to the 'provider' table in the MySQL database
+ * and stores administrative data for fleet contributors.
  */
 @Entity
 @Table(name = "provider")
-@Data // Lombok annotation: Automatically generates Getters, Setters, toString, and RequiredArgsConstructor
+@Data // Automatically generates all Getters, Setters, toString, and Equals methods via Lombok
 public class Provider {
 
     /**
-     * Primary Key: Unique identifier for each car provider.
-     * GenerationType.IDENTITY ensures the database handles the auto-increment logic.
+     * PRIMARY KEY: Unique identifier for each rental partner.
+     * The IDENTITY strategy relies on the database's auto-increment feature.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long providerId;
 
     /**
-     * The legal or business name of the car rental provider (e.g., "DriveEase Elite Suppliers").
+     * Stores the official business name of the vehicle supplier
+     * (e.g., "Elite Motors", "DriveEase Partners").
      */
     private String providerName;
 
     /**
-     * Stores contact information such as phone numbers, office address, or email
-     * associated with the provider for administrative inquiries.
+     * Captures essential contact data such as phone numbers, email, or physical
+     * office address for backend administrative use.
      */
     private String contactDetails;
+
+    private String phoneNo;
+    private String email;
+    private String address;
 }

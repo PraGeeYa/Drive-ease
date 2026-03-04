@@ -11,22 +11,29 @@ import HistoryIcon from '@mui/icons-material/History';
 import AgentService from '../api/Services/AgentService';
 
 const AgentInventory = () => {
+    // --- UI COLORS & ASSETS ---
     const PRIMARY_ORANGE = "#ff5722";
     const BG_IMAGE = "https://rev-ai.io/wp-content/uploads/2022/03/Transaction-Tracking-and-Analytics-Steering-Car-Rental-banner.webp";
     
-    const [bookings, setBookings] = useState([]); 
-    const [loading, setLoading] = useState(true);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [selectedBooking, setSelectedBooking] = useState({ id: null, customerName: '', pickupDate: '' });
+    // --- STATE MANAGEMENT ---
+    const [bookings, setBookings] = useState([]); // Stores the list of confirmed bookings
+    const [loading, setLoading] = useState(true); // Manages the data-loading spinner
+    const [isEditMode, setIsEditMode] = useState(false); // Toggles the visibility of the Edit panel
+    const [selectedBooking, setSelectedBooking] = useState({ id: null, customerName: '', pickupDate: '' }); // Data being edited
     
-    // 🔥 Toast State
+    // 🔥 Toast Notification State
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     
+    // Retrieves the unique ID of the logged-in agent from local storage
     const agentId = localStorage.getItem('userId'); 
 
-    // Helper to show Toast
+    // Helper function to trigger a popup alert (Toast)
     const showToast = (msg, sev = 'success') => setSnackbar({ open: true, message: msg, severity: sev });
 
+    /**
+     * DATA FETCHING logic
+     * Retrieves the history of bookings processed specifically by this agent.
+     */
     const fetchMyRealBookings = useCallback(async () => {
         try {
             setLoading(true);
@@ -39,19 +46,31 @@ const AgentInventory = () => {
         }
     }, [agentId]);
 
+    // Automatically fetches data when the component mounts or agentId changes
     useEffect(() => {
         if (agentId) fetchMyRealBookings();
     }, [agentId, fetchMyRealBookings]);
 
+    // Closes the Toast notification
     const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
+    /**
+     * EDIT HANDLER
+     * Populates the edit form with the selected booking's current data.
+     */
     const handleEditClick = (b) => {
         setSelectedBooking({ id: b.bookingId, customerName: b.customerName, pickupDate: b.pickupDate });
         setIsEditMode(true);
+        // Smooth scroll to the top so the user sees the edit panel
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    /**
+     * UPDATE LOGIC
+     * Sends the modified booking data to the backend.
+     */
     const handleUpdate = async () => {
+        // Simple client-side validation
         if (!selectedBooking.customerName || !selectedBooking.pickupDate) {
             showToast("Validation Error: Fields cannot be empty.", "warning");
             return;
@@ -59,19 +78,23 @@ const AgentInventory = () => {
         try {
             await AgentService.updateBooking(selectedBooking.id, selectedBooking);
             showToast("Record updated successfully!"); 
-            setIsEditMode(false);
-            fetchMyRealBookings();
+            setIsEditMode(false); // Hide the edit panel
+            fetchMyRealBookings(); // Refresh the table data
         } catch (err) {
             showToast("Critical: Update failed. System offline.", "error");
         }
     };
 
+    /**
+     * DELETE LOGIC
+     * Permanently removes a booking record after user confirmation.
+     */
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this archive?")) {
             try {
                 await AgentService.deleteBooking(id);
                 showToast("Record permanently deleted.", "success"); 
-                fetchMyRealBookings();
+                fetchMyRealBookings(); // Refresh the table data
             } catch (err) {
                 showToast("Critical: Deletion failed.", "error");
             }
@@ -85,6 +108,7 @@ const AgentInventory = () => {
             backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed'
         }}>
             
+            {/* --- HERO HEADER: Page title and icon --- */}
             <Box sx={{ py: 10, textAlign: 'center' }}>
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                     <Stack direction="row" spacing={1} justifyContent="center" alignItems="center" mb={1}>
@@ -101,6 +125,7 @@ const AgentInventory = () => {
 
             <Container maxWidth="lg">
                 
+                {/* --- EDIT PANEL: Appears only when an agent clicks 'Edit' --- */}
                 <AnimatePresence>
                     {isEditMode && (
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
@@ -110,7 +135,7 @@ const AgentInventory = () => {
                             }}>
                                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 900, color: PRIMARY_ORANGE }}>REVISING RECORD: #{selectedBooking.id}</Typography>
                                 
-                                {/* 🔥 Divider pawaichchi kala warning fix karanna */}
+                                {/* Divider used to separate title from form fields */}
                                 <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 3 }} />
 
                                 <Grid container spacing={3} alignItems="center">
@@ -144,6 +169,7 @@ const AgentInventory = () => {
                     )}
                 </AnimatePresence>
 
+                {/* --- TABLE: Displays the list of confirmed transactions --- */}
                 <TableContainer component={Paper} sx={{ bgcolor: 'rgba(10, 10, 10, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 }}>
                     {loading ? (
                         <Box sx={{ textAlign: 'center', py: 10 }}><CircularProgress sx={{ color: PRIMARY_ORANGE }} /></Box>
@@ -181,6 +207,7 @@ const AgentInventory = () => {
                 </TableContainer>
             </Container>
 
+            {/* 🔥 GLOBAL NOTIFICATIONS (Toast) */}
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
                 <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', bgcolor: snackbar.severity === 'success' ? '#1b3320' : '#331b1b', color: '#fff', border: `1px solid ${snackbar.severity === 'success' ? '#4caf50' : '#f44336'}`, borderRadius: 1 }}>
                     {snackbar.message}

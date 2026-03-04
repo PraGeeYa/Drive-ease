@@ -53,7 +53,7 @@ const Contact = () => {
     return (
         <Box sx={{ bgcolor: DARK_BG, minHeight: '100vh', color: '#fff', pb: 10 }}>
             
-            {/* --- 1. HERO HEADER WITH BACKGROUND IMAGE (Priyankara Style) --- */}
+            {/* --- 1. HERO HEADER WITH BACKGROUND IMAGE  --- */}
             <Box sx={{ 
                 height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 backgroundImage: 'url("https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")',

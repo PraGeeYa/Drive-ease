@@ -3,76 +3,76 @@ package com.driveease.rental.model;
 import jakarta.persistence.*;
 
 /**
- * The Customer entity represents a client in the DriveEase system.
- * This class maps to the 'customer' table in the database and stores
- * specific profile information for individuals renting vehicles.
+ * Customer Entity - Represents a client within the DriveEase ecosystem.
+ * This class is mapped to the 'customer' table in the database to persist
+ * individual profile data and rental preferences.
  */
 @Entity
 @Table(name = "customer")
 public class Customer {
 
     /**
-     * Primary Key: Unique identifier for each customer.
-     * GenerationType.IDENTITY enables the database to auto-increment the ID.
+     * PRIMARY KEY: Unique identifier for each customer record.
+     * The IDENTITY strategy allows the MySQL database to handle auto-incrementing the ID.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long customerId;
 
     /**
-     * Stores the full name of the customer.
+     * Stores the legal or display name of the customer.
      */
     private String customerName;
 
     /**
-     * Detailed field for specific rental needs or preferences.
-     * The columnDefinition = "TEXT" is used to allow for extensive descriptions
-     * that go beyond the default character limits of a standard string column.
+     * Captures specific needs, such as preferred car models, chauffeur requirements,
+     * or accessibility needs.
+     * Using 'TEXT' allows the database to store much longer descriptions than a standard VARCHAR.
      */
     @Column(columnDefinition = "TEXT")
     private String customerRequirements;
 
     // ========================================================================
-    // GETTERS AND SETTERS
+    // GETTERS AND SETTERS (Standard Boilerplate)
     // ========================================================================
 
     /**
-     * Gets the unique ID of the customer.
+     * Retrieves the database-generated ID for this customer.
      */
     public Long getCustomerId() {
         return customerId;
     }
 
     /**
-     * Sets the unique ID of the customer.
+     * Assigns a unique ID to the customer (handled automatically by JPA).
      */
     public void setCustomerId(Long customerId) {
         this.customerId = customerId;
     }
 
     /**
-     * Gets the full name of the customer.
+     * Retrieves the customer's full name.
      */
     public String getCustomerName() {
         return customerName;
     }
 
     /**
-     * Sets the full name of the customer.
+     * Updates the customer's full name.
      */
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
     }
 
     /**
-     * Gets the specific requirements provided by the customer.
+     * Retrieves the specific instructions or notes provided by the customer.
      */
     public String getCustomerRequirements() {
         return customerRequirements;
     }
 
     /**
-     * Sets the specific requirements provided by the customer.
+     * Updates the specific instructions or requirements for the customer's profile.
      */
     public void setCustomerRequirements(String customerRequirements) {
         this.customerRequirements = customerRequirements;

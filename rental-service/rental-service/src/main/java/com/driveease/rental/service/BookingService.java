@@ -8,8 +8,9 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * BookingService contains the core business logic for the rental system.
- * It handles vehicle availability filtering and complex price calculations.
+ * BookingService - The Core Business Logic Layer.
+ * This service handles decision-making processes such as vehicle filtering
+ * and dynamic price calculations for the DriveEase rental system.
  */
 @Service
 public class BookingService {
@@ -17,52 +18,51 @@ public class BookingService {
     private final VehicleContractRepository contractRepository;
 
     /**
-     * Constructor-based dependency injection for the Repository.
+     * CONSTRUCTOR INJECTION:
+     * Injecting the VehicleContractRepository to interact with the database.
      */
     public BookingService(VehicleContractRepository contractRepository) {
         this.contractRepository = contractRepository;
     }
 
     /**
-     * Searches for vehicles that are currently marked as available in the inventory.
-     * Logic:
-     * 1. If the 'type' is empty or "All", it retrieves every available vehicle.
-     * 2. If a specific category (e.g., SUV) is provided, it filters by that type.
-     * * @param type The category of vehicle the customer is looking for.
-     * @return A list of available vehicle contracts.
+     * SEARCH LOGIC:
+     * Filters the fleet based on customer preferences and real-time availability.
+     * * @param type - The vehicle category (e.g., SUV, Sedan, All).
+     * @return A filtered list of available vehicle contracts.
      */
     public List<VehicleContract> searchAvailableVehicles(String type) {
-        // Handling generic search queries from the frontend
+        // Rule: If no specific type is selected, show all available vehicles in the fleet.
         if (type == null || type.trim().isEmpty() || type.equalsIgnoreCase("All")) {
-            // Fetches all records where availability_status = true
             return contractRepository.findByAvailabilityStatus(true);
         }
 
-        // Fetches records filtered by both specific category and active availability
+        // Rule: If a category is chosen, fetch only those that match AND are available.
         return contractRepository.findByVehicleTypeAndAvailabilityStatus(type, true);
     }
 
     /**
-     * Calculates the total rental cost for a booking inquiry.
-     * Business Rule: A 10% Markup is added to the base rate for service fees.
-     * * Formula: (Base Rate * 1.10 Markup) * Rental Days * Vehicle Count
-     * * @param baseRate The daily rental price from the contract.
-     * @param days Total duration of the rental.
-     * @param vehicleCount Number of units requested.
-     * @return The final total price as a high-precision BigDecimal.
+     * PRICING ENGINE:
+     * Calculates the total rental cost including a service markup.
+     * * Business Rule: A 10% service fee is added to the base rate.
+     * Formula: (Base Rate * 1.10 Markup) * Rental Days * Vehicle Count
+     * * @param baseRate - Daily price from the contract.
+     * @param days - Total duration of the trip.
+     * @param vehicleCount - Total number of cars requested.
+     * @return Final high-precision total price.
      */
     public BigDecimal calculateFinalPrice(BigDecimal baseRate, int days, int vehicleCount) {
-        // Safety check: Ensuring days and count are at least 1 to prevent zero-pricing errors
+        // Safety: Ensure rental duration and car count are at least 1.
         int rentalDays = Math.max(1, days);
         int count = Math.max(1, vehicleCount);
 
-        // Define a 10% markup multiplier (1.10)
+        // Constants: Defining the 10% markup (1.10).
         BigDecimal markupMultiplier = new BigDecimal("1.10");
 
-        // Step 1: Apply the 10% service markup to the base daily rate
+        // Step 1: Apply the 10% markup to the base daily rate.
         BigDecimal rateWithMarkup = baseRate.multiply(markupMultiplier);
 
-        // Step 2: Multiply the adjusted rate by the number of days and the number of vehicles
+        // Step 2: Multiply by days and quantity to get the final bill.
         return rateWithMarkup
                 .multiply(new BigDecimal(rentalDays))
                 .multiply(new BigDecimal(count));

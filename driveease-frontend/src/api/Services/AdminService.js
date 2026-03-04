@@ -2,6 +2,7 @@ import apiClient from '../apiClient';
 
 /**
  * DriveEase Elite - Admin Management Service
+ * Developed by Prageeth Weerasekara
  * Redefined for professional vehicle and user management.
  */
 const AdminService = {
@@ -31,21 +32,45 @@ const AdminService = {
         return apiClient.put(`/admin/contracts/${id}`, payload);
     },
 
+    updateContractStatus: (id, status) => {
+        if (!id) throw new Error("Contract ID is required for status update.");
+        return apiClient.put(`/vehicles/${id}/status?status=${status}`);
+    },
+
     toggleContractStatus: (id, status) => {
-        return apiClient.patch(`/admin/contracts/${id}/status?status=${status}`);
+        return apiClient.put(`/vehicles/${id}/status?status=${status}`);
     },
 
     // 4. Provider Management
+    // Registers a new vehicle provider into the system database.
     addProvider: (providerData) => {
         return apiClient.post('/admin/providers', providerData);
     },
 
-    // 5. User & Access Control (FIXED PATHS)
+    /**
+     * UPDATED: updateProvider
+     * Modifies existing provider details (Name, Contact, Address, etc.) 
+     * based on the unique providerId.
+     */
+    updateProvider: (id, providerData) => {
+        if (!id) throw new Error("Provider ID is required for update.");
+        return apiClient.put(`/admin/providers/${id}`, providerData);
+    },
+
+    /**
+     * UPDATED: deleteProvider
+     * Permanently removes a vehicle provider from the system ledger.
+     */
+    deleteProvider: (id) => {
+        if (!id) throw new Error("Provider ID is required for deletion.");
+        return apiClient.delete(`/admin/providers/${id}`);
+    },
+
+    // 5. User & Access Control
     getAllUsers: () => {
         return apiClient.get('/admin/users');
     },
 
-    // FIXED: API path alignment with Controller
     deleteUser: (id) => {
         if (!id) throw new Error("Target ID is required for deletion.");
         return apiClient.delete(`/admin/users/${id}`);

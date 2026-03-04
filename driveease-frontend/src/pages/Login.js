@@ -21,8 +21,8 @@ const Login = () => {
     const PRIMARY_ORANGE = "#ff5722"; 
 
     /**
-     * handleLogin processes the authentication request.
-     * Updated to handle JWT Token storage and Role-based redirection.
+     * handleLogin - Processes the authentication request.
+     * UPDATED: Now redirects ALL users to the Home page ('/') after a successful login.
      */
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -30,25 +30,26 @@ const Login = () => {
             setLoading(true);
             setError('');
             
-            // Sending login request to backend
+            // 1. Send credentials to the Spring Boot backend
             const response = await AuthService.login({ username, password });
             
-            // 🔥 Destructuring JWT Token and other details from response
-            const { token, role, userId, redirectUrl } = response.data;
+            // 2. Destructure key data points from the backend response
+            const { token, role, userId } = response.data;
 
-            // 🔥 Persisting JWT Token and identity in local storage
-            localStorage.setItem('token', token); // Meka nisa thama dan API calls lock wenne naththe
+            // 3. PERSISTENCE: Store authentication data in LocalStorage
+            localStorage.setItem('token', token); 
             localStorage.setItem('role', role); 
             localStorage.setItem('userId', userId);
 
             /**
-             * REDIRECTION LOGIC:
-             * Redirects user to the specific path sent by the backend logic.
+             * GLOBAL REDIRECTION:
+             * No matter if the user is an ADMIN, AGENT, or CUSTOMER,
+             * they will be navigated to the Home Page first.
              */
-            navigate(redirectUrl || '/'); 
+            navigate('/'); 
 
         } catch (err) {
-            setError('Authentication failed. Please check credentials.');
+            setError('Authentication failed. Please check your credentials.');
             console.error("Login Error:", err);
         } finally {
             setLoading(false);
@@ -67,7 +68,7 @@ const Login = () => {
         }}>
             <Grid container sx={{ minHeight: '100vh' }}>
                 
-                {/* LEFT SIDE: BRANDING */}
+                {/* LEFT SIDE: BRANDING & MESSAGING */}
                 <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', p: { xs: 4, md: 12 } }}>
                     <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
                         <Typography variant="overline" sx={{ color: PRIMARY_ORANGE, letterSpacing: 8, fontWeight: 900 }}>
@@ -78,7 +79,6 @@ const Login = () => {
                         </Typography>
                         <Typography variant="h6" sx={{ opacity: 0.6, maxWidth: '500px', mb: 4, fontWeight: 400, lineHeight: 1.6 }}>
                             Securely access Sri Lanka's most advanced car rental fleet management system. 
-                            Your journey begins with a single click.
                         </Typography>
                         
                         <Stack direction="row" spacing={3}>
@@ -89,7 +89,7 @@ const Login = () => {
                     </motion.div>
                 </Grid>
 
-                {/* RIGHT SIDE: GLASS-MORPHISM LOGIN FORM */}
+                {/* RIGHT SIDE: AUTHENTICATION FORM */}
                 <Grid item xs={12} md={5} sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -115,7 +115,11 @@ const Login = () => {
                                     <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>Enter your authorization credentials below.</Typography>
                                 </Box>
 
-                                {error && <Alert severity="error" sx={{ bgcolor: 'rgba(211, 47, 47, 0.1)', color: '#ff5252', borderRadius: 0, borderLeft: `4px solid #ff5252` }}>{error}</Alert>}
+                                {error && (
+                                    <Alert severity="error" sx={{ bgcolor: 'rgba(211, 47, 47, 0.1)', color: '#ff5252', borderRadius: 0, borderLeft: `4px solid #ff5252` }}>
+                                        {error}
+                                    </Alert>
+                                )}
 
                                 <Box component="form" onSubmit={handleLogin}>
                                     <TextField 
@@ -176,7 +180,7 @@ const Login = () => {
                                             '&:hover': { bgcolor: '#fff', color: '#000' } 
                                         }}
                                     >
-                                        {loading ? 'AUTHENTICATING...' : 'ACCESS DASHBOARD'}
+                                        {loading ? 'AUTHENTICATING...' : 'ACCESS ACCOUNT'}
                                     </Button>
                                 </Box>
 

@@ -5,16 +5,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * CustomerRepository acts as the Data Access Object (DAO) for the Customer entity.
- * It provides the necessary abstraction to perform CRUD operations on the
- * 'customer' table without writing complex SQL queries.
+ * CustomerRepository - The Data Access Layer for Customer Profiles.
+ * This interface bridges the gap between the Java application and the
+ * 'customer' table in the MySQL database using Spring Data JPA.
  */
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
-    // By extending JpaRepository, this interface automatically inherits methods like:
-    // .save(Customer)       - To create or update customer profiles.
-    // .findById(Long)       - To retrieve a specific customer by their ID.
-    // .findAll()            - To list all registered customers in the system.
-    // .deleteById(Long)     - To remove a customer record.
+    /**
+     * Note: Since this interface extends JpaRepository, Spring Boot
+     * automatically provides implementation for the following methods:
+     * * 1. .save(Customer)       - Used during registration or profile updates.
+     * 2. .findById(Long)       - Retrieves a customer's details using their Primary Key.
+     * 3. .findAll()            - Used by Admin/Agents to list all clients.
+     * 4. .deleteById(Long)     - Permanently removes a customer record.
+     */
 }
