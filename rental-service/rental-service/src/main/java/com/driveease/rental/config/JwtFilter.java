@@ -19,64 +19,64 @@ import java.util.Collections;
 import javax.crypto.SecretKey;
 
 /**
- * JwtFilter - This filter intercepts every incoming HTTP request once.
- * It checks for a valid JWT token in the Authorization header to authenticate the user.
+ * JwtFilter intercepts every HTTP request to validate the JWT token.
+ * It ensures that the user is authenticated before reaching the API endpoints.
  */
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    // The secret key used to sign and verify the JWT.
-    // Must match the key used during token generation.
+    // Secret Key used for digital signature verification.
+    // IMPORTANT: In production, store this in an environment variable or config file.
     private final String jwtSecret = "DriveEaseSecretKeyDriveEaseSecretKeyDriveEaseSecretKey";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Extract the Authorization header from the request
+        // Step 1: Look for the 'Authorization' header in the incoming request
         String authHeader = request.getHeader("Authorization");
 
-        // 2. Check if the header exists and starts with "Bearer "
+        // Step 2: Validate if the header exists and follows the 'Bearer <token>' format
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7); // Remove "Bearer " prefix to get the actual token
+            String token = authHeader.substring(7); // Extract the token string after "Bearer "
 
             try {
-                // Generate the SecretKey object from our string secret
+                // Convert the plain text secret into a cryptographic SecretKey object
                 SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
 
-                // 3. Parse and Validate the token
+                // Step 3: Parse the token and verify its signature/validity
                 Claims claims = Jwts.parser()
                         .verifyWith(key)
                         .build()
                         .parseSignedClaims(token)
                         .getPayload();
 
-                // 4. Extract Username and Role from the token's payload
+                // Step 4: Extract user identity and permissions (claims) from the token
                 String username = claims.getSubject();
                 Object roleObj = claims.get("role");
                 String role = roleObj != null ? roleObj.toString() : null;
 
-                // 5. If user is valid and not already authenticated in this security context
+                // Step 5: Check if the user is valid and not already authenticated in the current context
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                    // Format the role to match Spring Security's expected format (e.g., ROLE_ADMIN)
+                    // Step 6: Map the role to a Spring Security Authority (e.g., ADMIN -> ROLE_ADMIN)
                     String authorityName = (role != null) ? "ROLE_" + role : "ROLE_USER";
 
-                    // 6. Create an Authentication object for Spring Security
+                    // Step 7: Create a formal Authentication object with user details and roles
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                             username, null, Collections.singletonList(new SimpleGrantedAuthority(authorityName))
                     );
 
-                    // 7. Store the authentication details in the Security Context
+                    // Step 8: Set the authentication into the Security Context for the duration of the request
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception e) {
-                // If token is expired, tampered with, or invalid, log the error
+                // Log any errors (expired tokens, invalid signatures, etc.)
                 System.out.println("JWT Validation Error: " + e.getMessage());
             }
         }
 
-        // 8. Continue the request to the next filter or the Controller
+        // Final Step: Hand over the request to the next filter in the chain (or the controller)
         filterChain.doFilter(request, response);
     }
 }

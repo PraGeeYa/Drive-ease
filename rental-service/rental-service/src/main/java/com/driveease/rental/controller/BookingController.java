@@ -137,7 +137,7 @@ public class BookingController {
             bookingRequestRepository.save(req);
 
             /**
-             * 📧 EMAIL DISPATCH ENGINE:
+             * EMAIL DISPATCH ENGINE:
              * Priority: 1. User Profile Email | 2. Manual Frontend Entry
              */
             String recipientEmail = (customer.getEmail() != null) ? customer.getEmail() : data.get("customerEmail").toString();
@@ -160,28 +160,45 @@ public class BookingController {
     }
 
     /**
-     * MANUAL CREATE: Allows Agents to register bookings without a prior web request.
+     * FIXED MANUAL CREATE:
+     * Allows Agents to register bookings directly to the Confirmed Contracts (Booking History) table.
      */
     @PostMapping("/create")
     public ResponseEntity<?> createBooking(@RequestBody Map<String, Object> data) {
         try {
             Booking booking = new Booking();
+
+            // 1. Set simple fields mapping correctly from Frontend Payload
             booking.setRentalDays(Integer.parseInt(data.get("rentalDays").toString()));
             booking.setVehicleCount(Integer.parseInt(data.get("vehicleCount").toString()));
             booking.setFinalPrice(new BigDecimal(data.get("finalPrice").toString()));
             booking.setPickupDate(LocalDate.parse(data.get("pickupDate").toString()));
             booking.setCustomerName(data.get("customerName").toString());
 
-            User agent = userRepository.findById(Long.valueOf(data.get("agentId").toString())).orElseThrow();
-            VehicleContract contract = contractRepository.findById(Long.valueOf(data.get("contractId").toString())).orElseThrow();
+            // 2. Fetch Relationships (Agent and Vehicle)
+            User agent = userRepository.findById(Long.valueOf(data.get("agentId").toString()))
+                    .orElseThrow(() -> new RuntimeException("Agent not found"));
+
+            // Note: Frontend sends 'vehicleId', so we extract it using that key.
+            VehicleContract contract = contractRepository.findById(Long.valueOf(data.get("vehicleId").toString()))
+                    .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+            // 3. Set Customer (Optional for direct agent bookings, but required if foreign key is NOT NULL in DB)
+            if (data.get("customerId") != null) {
+                User customer = userRepository.findById(Long.valueOf(data.get("customerId").toString())).orElse(null);
+                booking.setCustomer(customer);
+            }
 
             booking.setAgent(agent);
             booking.setVehicleContract(contract);
 
+            // Save directly to the main Booking table (Booking History)
             bookingRepository.save(booking);
-            return ResponseEntity.ok("Direct booking registered successfully!");
+
+            return ResponseEntity.ok("Direct booking saved to Confirmed Contracts successfully!");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            e.printStackTrace(); // This prints the exact error in your Spring Boot console
+            return ResponseEntity.status(500).body("Error creating booking: " + e.getMessage());
         }
     }
 

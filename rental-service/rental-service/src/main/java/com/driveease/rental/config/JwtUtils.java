@@ -12,19 +12,21 @@ import java.util.Map;
 
 /**
  * JwtUtils - A utility class for handling all JWT operations.
- * This class is responsible for generating, parsing, and validating security tokens.
+ * It provides methods to create, parse, and verify JSON Web Tokens.
  */
 @Component
 public class JwtUtils {
 
-    // The secret key used for signing the token. Should be kept highly secure.
+    // Secret key used to digitally sign the JWT.
+    // This must be kept secret to prevent unauthorized token generation.
     private final String jwtSecret = "DriveEaseSecretKeyDriveEaseSecretKeyDriveEaseSecretKey";
 
-    // Token validity period set to 24 hours (in milliseconds).
+    // Token expiration time set to 24 hours (86,400,000 milliseconds).
     private final int jwtExpirationMs = 86400000;
 
     /**
-     * Internal helper to convert the secret string into a cryptographic SecretKey.
+     * Converts the plain text secret string into a HMAC-SHA SecretKey object.
+     * This key is used for both signing and verifying tokens.
      */
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
@@ -32,41 +34,46 @@ public class JwtUtils {
     }
 
     /**
-     * GENERATE TOKEN
-     * Creates a signed JWT for a specific user, embedding their username and role.
-     * @param username - The unique username of the user.
-     * @param role - The user's authority (e.g., ADMIN, AGENT, CUSTOMER).
+     * OPERATION: GENERATE TOKEN
+     * Creates a new JWT string for an authenticated user.
+     * * @param username - The identity of the user.
+     * @param role - The user's role (to be stored in the 'claims' section).
+     * @return A signed JWT string.
      */
     public String generateToken(String username, String role) {
-        // Map to store additional info inside the token (Claims)
+        // 'Claims' are pieces of information shared between the server and client.
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role); // Embedding the role so frontend/filter can read it later
+        claims.put("role", role);
 
         return Jwts.builder()
-                .claims(claims) // Attach custom data (role)
-                .subject(username) // Set the identity of the user
-                .issuedAt(new Date()) // Current timestamp
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs)) // Expiry timestamp
-                .signWith(getSigningKey()) // Sign the token with our secret key
-                .compact(); // Finalize and return the encrypted string
+                .claims(claims)                // Add custom user data (role)
+                .subject(username)             // Set the 'sub' (subject) claim as the username
+                .issuedAt(new Date())          // Set the token creation timestamp
+                .expiration(new Date((new Date()).getTime() + jwtExpirationMs)) // Set expiration
+                .signWith(getSigningKey())     // Sign the token using the secret key
+                .compact();                    // Serialize the JWT into a URL-safe string
     }
 
     /**
-     * EXTRACT USERNAME
-     * Decodes the token to find out which user it belongs to.
+     * OPERATION: EXTRACT USERNAME
+     * Decodes the token to retrieve the 'subject' (username) claim.
+     * * @param token - The JWT string sent by the client.
+     * @return The username embedded in the token.
      */
     public String getUsernameFromToken(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(getSigningKey())   // Verify signature before reading
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(token)      // Parse the token components
                 .getPayload()
-                .getSubject(); // Returns the 'subject' (username)
+                .getSubject();                 // Extract the subject field
     }
 
     /**
-     * VALIDATE TOKEN
-     * Checks if the token is properly signed and hasn't expired.
+     * OPERATION: VALIDATE TOKEN
+     * Checks if the token is structurally correct, has a valid signature, and is not expired.
+     * * @param authToken - The JWT to validate.
+     * @return true if valid, false otherwise.
      */
     public boolean validateToken(String authToken) {
         try {
@@ -74,9 +81,9 @@ public class JwtUtils {
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(authToken);
-            return true; // Token is legitimate and active
+            return true; // Token passed all security checks
         } catch (Exception e) {
-            // Logs why the token failed (e.g., ExpiredJwtException, MalformedJwtException)
+            // Log the specific reason for failure (e.g., Expired, Malformed, Unsupported)
             System.out.println("JWT Validation Error: " + e.getMessage());
             return false;
         }

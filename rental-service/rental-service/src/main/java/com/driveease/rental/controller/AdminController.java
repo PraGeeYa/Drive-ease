@@ -11,14 +11,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * AdminController - Handles all administrative actions for managing the system.
- * This includes managing vehicle suppliers (Providers), the Fleet (Contracts), and Users.
  */
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "http://localhost:3000") // Allows React frontend to communicate with these endpoints
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"}) // 🔥 FIXED: Vite port 5173 added
 public class AdminController {
 
     @Autowired
@@ -34,19 +34,16 @@ public class AdminController {
     // SECTION: PROVIDER MANAGEMENT
     // ==========================================
 
-    // Fetches all vehicle suppliers registered in the system
     @GetMapping("/providers")
     public List<Provider> getAllProviders() {
         return providerRepository.findAll();
     }
 
-    // Registers a new third-party vehicle provider
     @PostMapping("/providers")
     public Provider addProvider(@RequestBody Provider provider) {
         return providerRepository.save(provider);
     }
 
-    // Updates an existing provider's details (Name or Contact)
     @PutMapping("/providers/{id}")
     public Provider updateProvider(@PathVariable Long id, @RequestBody Provider details) {
         Provider provider = providerRepository.findById(id).orElseThrow();
@@ -55,31 +52,27 @@ public class AdminController {
         return providerRepository.save(provider);
     }
 
-    // Removes a provider from the database
     @DeleteMapping("/providers/{id}")
     public ResponseEntity<?> deleteProvider(@PathVariable Long id) {
         providerRepository.deleteById(id);
-        return ResponseEntity.ok("Provider removed!");
+        return ResponseEntity.ok().body("Provider removed!");
     }
 
     // ==========================================
     // SECTION: VEHICLE CONTRACT (FLEET) MANAGEMENT
     // ==========================================
 
-    // Retrieves all vehicle entries available in the fleet inventory
-    @GetMapping("/contracts")
+    @GetMapping("/vehicles")
     public List<VehicleContract> getAllContracts() {
         return contractRepository.findAll();
     }
 
-    // Adds a new vehicle type/model to the inventory
-    @PostMapping("/contracts")
+    @PostMapping("/vehicles")
     public VehicleContract addContract(@RequestBody VehicleContract contract) {
         return contractRepository.save(contract);
     }
 
-    // Modifies existing vehicle data like daily rates or availability
-    @PutMapping("/contracts/{id}")
+    @PutMapping("/vehicles/{id}")
     public VehicleContract updateContract(@PathVariable Long id, @RequestBody VehicleContract details) {
         VehicleContract contract = contractRepository.findById(id).orElseThrow();
         contract.setVehicleType(details.getVehicleType());
@@ -88,44 +81,67 @@ public class AdminController {
         return contractRepository.save(contract);
     }
 
-    // Deletes a specific vehicle entry from the fleet
-    @DeleteMapping("/contracts/{id}")
+    @PatchMapping("/vehicles/{id}/status")
+    public ResponseEntity<?> updateVehicleStatus(@PathVariable Long id, @RequestBody Map<String, String> statusMap) {
+        VehicleContract contract = contractRepository.findById(id).orElseThrow();
+
+        String newStatus = statusMap.get("status");
+        if ("AVAILABLE".equalsIgnoreCase(newStatus)) {
+            contract.setAvailabilityStatus(true);
+        } else {
+            contract.setAvailabilityStatus(false);
+        }
+
+        contractRepository.save(contract);
+        return ResponseEntity.ok().body("Status Updated Successfully!");
+    }
+
+    @DeleteMapping("/vehicles/{id}")
     public ResponseEntity<?> deleteContract(@PathVariable Long id) {
         contractRepository.deleteById(id);
-        return ResponseEntity.ok("Vehicle removed!");
+        return ResponseEntity.ok().body("Vehicle removed!");
     }
 
     // ==========================================
     // SECTION: FULL USER MANAGEMENT
     // ==========================================
 
-    // Fetches a complete list of all users (Admins, Agents, and Customers)
     @GetMapping("/users")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    /**
-     * DELETE USER
-     * Safely attempts to remove a user account.
-     * Prevents deletion if the user is linked to active transactions to maintain data integrity.
-     */
+    // 🔥 ADDED: Update User Role from React Dropdown
+    @PatchMapping("/users/{id}/role")
+    public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> roleMap) {
+        try {
+            User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+            String newRoleStr = roleMap.get("role");
+
+            // Map string to Enum
+            User.Role newRole = User.Role.valueOf(newRoleStr.toUpperCase());
+            user.setRole(newRole);
+
+            userRepository.save(user);
+            return ResponseEntity.ok().body("User role updated successfully to " + newRole);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to update user role.");
+        }
+    }
+
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             if (!userRepository.existsById(id)) {
                 return ResponseEntity.status(404).body("User not found");
             }
-            // Deletes user; will fail if foreign key constraints (bookings/requests) exist
             userRepository.deleteById(id);
-            return ResponseEntity.ok("User account deleted successfully!");
+            return ResponseEntity.ok().body("User account deleted successfully!");
         } catch (Exception e) {
-            // Returns a detailed error if the user has active business records
             return ResponseEntity.status(500).body("Deletion Forbidden: User has active bookings or requests.");
         }
     }
 
-    // Filters and fetches only the administrative users
     @GetMapping("/list-admins")
     public List<User> getAllAdmins() {
         return userRepository.findByRole(User.Role.ADMIN);

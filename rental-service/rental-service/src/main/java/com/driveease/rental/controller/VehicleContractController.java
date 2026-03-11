@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 /**
  * VehicleContractController - Manages the vehicle fleet inventory.
- * Developed by: Prageeth Weerasekara
  */
 @RestController
 @RequestMapping("/api/vehicles")
@@ -61,5 +60,27 @@ public class VehicleContractController {
                     return ResponseEntity.ok("Vehicle status updated to: " + (status ? "Available" : "Rented"));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ========================================================================
+    // DELETE VEHICLE ENGINE (ADDED TO FIX THE ERROR)
+    // ========================================================================
+
+    /**
+     * DELETE VEHICLE
+     * Removes a vehicle from the database based on its ID.
+     */
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> deleteVehicle(@PathVariable Long id) {
+        try {
+            if (vehicleContractRepository.existsById(id)) {
+                vehicleContractRepository.deleteById(id);
+                return ResponseEntity.ok("Vehicle deleted successfully.");
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error deleting vehicle: " + e.getMessage());
+        }
     }
 }

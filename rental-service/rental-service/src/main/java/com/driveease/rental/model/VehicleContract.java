@@ -2,65 +2,56 @@ package com.driveease.rental.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * VehicleContract Entity - Represents the core inventory items in the fleet.
- * This class links vehicle types with pricing, suppliers (Providers),
- * and responsible management personnel (Agents).
  */
 @Entity
 @Table(name = "vehicle_contract")
 public class VehicleContract {
 
-    /**
-     * PRIMARY KEY: Unique identifier for each vehicle listing.
-     * The database handles auto-increment logic via IDENTITY strategy.
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long contractId;
 
-    /**
-     * Stores the category or model of the vehicle (e.g., Sedan, SUV, EV).
-     */
     private String vehicleType;
 
-    /**
-     * The standard daily rental rate.
-     * Uses BigDecimal to prevent floating-point errors in financial calculations.
-     */
     private BigDecimal baseRatePerDay;
 
-    /**
-     * The maximum daily distance (km) included in the base rate.
-     */
     private int allowedMileage;
 
-    /**
-     * Current status of the asset.
-     * True = Ready for booking, False = Under maintenance or booked.
-     */
     private boolean availabilityStatus;
 
-    /**
-     * RELATIONSHIP: Links the vehicle to its legal owner/supplier.
-     * A single Provider can offer multiple vehicle contracts.
-     */
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
     @ManyToOne
     @JoinColumn(name = "provider_id")
     private Provider provider;
 
-    /**
-     * RELATIONSHIP: Links the vehicle to a specific Support Agent.
-     * This allows agents to see and manage their own assigned inventory
-     * in the Agent Dashboard.
-     */
     @ManyToOne
     @JoinColumn(name = "agent_id")
     private User agent;
 
+    /**
+     * 🔥 Relationship to Bookings with CASCADE DELETE.
+     */
+    @OneToMany(mappedBy = "vehicleContract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Booking> bookings;
+
+    /**
+     * 🔥 ADDED: Relationship to BookingRequests with CASCADE DELETE.
+     * This fixes the SQL Integrity Violation by allowing requests to be deleted automatically.
+     */
+    @OneToMany(mappedBy = "vehicleContract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<BookingRequest> bookingRequests;
+
     // ========================================================================
-    // GETTERS AND SETTERS (Standard Boilerplate)
+    // GETTERS AND SETTERS
     // ========================================================================
 
     public Long getContractId() { return contractId; }
@@ -72,28 +63,26 @@ public class VehicleContract {
     public BigDecimal getBaseRatePerDay() { return baseRatePerDay; }
     public void setBaseRatePerDay(BigDecimal baseRatePerDay) { this.baseRatePerDay = baseRatePerDay; }
 
-    /**
-     * Helper getter for boolean status.
-     * Required by some JSON serializers and Controllers.
-     */
-    public boolean getAvailabilityStatus() { return availabilityStatus; }
+    public int getAllowedMileage() { return allowedMileage; }
+    public void setAllowedMileage(int allowedMileage) { this.allowedMileage = allowedMileage; }
 
-    /**
-     * Standard boolean 'is' getter for logical checks.
-     */
+    public boolean getAvailabilityStatus() { return availabilityStatus; }
     public boolean isAvailabilityStatus() { return availabilityStatus; }
     public void setAvailabilityStatus(boolean availabilityStatus) { this.availabilityStatus = availabilityStatus; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public Provider getProvider() { return provider; }
     public void setProvider(Provider provider) { this.provider = provider; }
 
-    /**
-     * Retrieves the managing support agent.
-     */
     public User getAgent() { return agent; }
-
-    /**
-     * Assigns a manager (agent) to this fleet asset.
-     */
     public void setAgent(User agent) { this.agent = agent; }
+
+    public List<Booking> getBookings() { return bookings; }
+    public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
+
+    // 🔥 Added Getters/Setters for bookingRequests
+    public List<BookingRequest> getBookingRequests() { return bookingRequests; }
+    public void setBookingRequests(List<BookingRequest> bookingRequests) { this.bookingRequests = bookingRequests; }
 }
